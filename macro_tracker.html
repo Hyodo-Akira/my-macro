@@ -1,0 +1,1306 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>MyMacro - 食事管理</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0f1419;
+    --panel: #1a2129;
+    --panel-2: #232c37;
+    --border: #2d3845;
+    --text: #e6edf3;
+    --text-dim: #8b98a5;
+    --accent: #4fc3f7;
+    --accent-2: #29b6f6;
+    --protein: #ef5350;
+    --fat: #ffb74d;
+    --carb: #66bb6a;
+    --warning: #ffa726;
+    --danger: #f44336;
+    --success: #4caf50;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic UI", "Meiryo", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 15px;
+    line-height: 1.5;
+    overscroll-behavior: none;
+  }
+  #app {
+    max-width: 480px;
+    margin: 0 auto;
+    min-height: 100vh;
+    padding-bottom: 80px;
+    position: relative;
+  }
+  header {
+    padding: 16px 16px 12px;
+    position: sticky;
+    top: 0;
+    background: var(--bg);
+    z-index: 10;
+    border-bottom: 1px solid var(--border);
+  }
+  header h1 { font-size: 18px; font-weight: 600; }
+  header .sub { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
+  main { padding: 16px; }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+  .card h2 { font-size: 14px; font-weight: 600; color: var(--text-dim); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .row { display: flex; align-items: center; gap: 8px; }
+  .row.between { justify-content: space-between; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+  .big-number { font-size: 32px; font-weight: 700; }
+  .label { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; }
+
+  .progress-bar {
+    background: var(--panel-2);
+    border-radius: 6px;
+    height: 8px;
+    overflow: hidden;
+    margin-top: 6px;
+  }
+  .progress-fill { height: 100%; transition: width 0.3s ease; border-radius: 6px; }
+  .progress-fill.protein { background: var(--protein); }
+  .progress-fill.fat { background: var(--fat); }
+  .progress-fill.carb { background: var(--carb); }
+  .progress-fill.calorie { background: var(--accent); }
+
+  .macro-block { text-align: center; }
+  .macro-block .val { font-size: 18px; font-weight: 600; }
+  .macro-block .tgt { font-size: 11px; color: var(--text-dim); }
+
+  button, .btn {
+    background: var(--accent);
+    color: #001019;
+    border: none;
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  button.secondary, .btn.secondary { background: var(--panel-2); color: var(--text); border: 1px solid var(--border); }
+  button.danger { background: var(--danger); color: white; }
+  button.ghost { background: transparent; color: var(--accent); padding: 8px; }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  button.small { padding: 6px 10px; font-size: 12px; }
+  button.full { width: 100%; }
+
+  input, select, textarea {
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 15px;
+    font-family: inherit;
+    width: 100%;
+  }
+  input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+  label { display: block; font-size: 12px; color: var(--text-dim); margin-bottom: 4px; }
+
+  nav.bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--panel);
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-around;
+    padding: 8px 0 calc(8px + env(safe-area-inset-bottom));
+    z-index: 100;
+  }
+  nav.bottom-nav .nav-item {
+    flex: 1;
+    text-align: center;
+    padding: 6px 0;
+    color: var(--text-dim);
+    font-size: 11px;
+    cursor: pointer;
+    background: transparent;
+    border: none;
+  }
+  nav.bottom-nav .nav-item.active { color: var(--accent); }
+  nav.bottom-nav .nav-item .icon { font-size: 20px; display: block; margin-bottom: 2px; }
+
+  .view { display: none; }
+  .view.active { display: block; }
+
+  .food-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .food-item:last-child { border-bottom: none; }
+  .food-item .name { font-weight: 500; }
+  .food-item .meta { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+  .food-item .kcal { font-weight: 600; }
+
+  .meal-section { margin-bottom: 12px; }
+  .meal-title {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-dim);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+  }
+  .meal-add { color: var(--accent); font-size: 18px; }
+
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7);
+    display: none;
+    align-items: flex-end;
+    z-index: 1000;
+  }
+  .modal-overlay.active { display: flex; }
+  .modal {
+    background: var(--panel);
+    width: 100%;
+    max-width: 480px;
+    margin: 0 auto;
+    border-radius: 16px 16px 0 0;
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: 16px;
+  }
+  .modal h2 { font-size: 16px; margin-bottom: 12px; }
+  .modal .actions { display: flex; gap: 8px; margin-top: 16px; }
+  .modal .actions button { flex: 1; }
+
+  .form-group { margin-bottom: 12px; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+  .empty {
+    text-align: center;
+    padding: 32px 16px;
+    color: var(--text-dim);
+    font-size: 13px;
+  }
+
+  .day-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    background: var(--panel);
+    border-radius: 8px;
+    padding: 8px;
+  }
+  .day-nav button { background: transparent; color: var(--accent); padding: 6px 12px; }
+  .day-nav .date { font-weight: 600; }
+
+  .chart-container { position: relative; height: 240px; margin-top: 8px; }
+
+  .tdee-info {
+    background: var(--panel-2);
+    border-radius: 8px;
+    padding: 12px;
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-top: 8px;
+    line-height: 1.6;
+  }
+
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+  .badge.calc { background: rgba(79, 195, 247, 0.2); color: var(--accent); }
+  .badge.est { background: rgba(255, 167, 38, 0.2); color: var(--warning); }
+
+  .search-bar {
+    margin-bottom: 12px;
+    display: flex;
+    gap: 8px;
+  }
+  .search-bar input { flex: 1; }
+
+  .food-list-item {
+    padding: 10px 12px;
+    background: var(--panel-2);
+    border-radius: 8px;
+    margin-bottom: 6px;
+    cursor: pointer;
+  }
+  .food-list-item:active { background: var(--border); }
+
+  .info-text { font-size: 12px; color: var(--text-dim); margin-top: 4px; }
+
+  .quick-btn {
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 6px 12px;
+    border-radius: 16px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+
+  .delta-positive { color: var(--success); }
+  .delta-negative { color: var(--danger); }
+
+  hr { border: none; border-top: 1px solid var(--border); margin: 12px 0; }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1 id="header-title">MyMacro</h1>
+    <div class="sub" id="header-sub">食事管理</div>
+  </header>
+
+  <main>
+    <!-- =================== TODAY VIEW =================== -->
+    <section class="view active" id="view-today">
+      <div class="day-nav">
+        <button onclick="changeDay(-1)">◀ 前日</button>
+        <div class="date" id="today-date"></div>
+        <button onclick="changeDay(1)">翌日 ▶</button>
+      </div>
+
+      <div class="card">
+        <h2>カロリー</h2>
+        <div class="row between">
+          <div>
+            <div class="big-number" id="cal-remaining">0</div>
+            <div class="label">残り kcal</div>
+          </div>
+          <div style="text-align:right;">
+            <div><span id="cal-consumed">0</span> / <span id="cal-target">0</span></div>
+            <div class="label">摂取 / 目標</div>
+          </div>
+        </div>
+        <div class="progress-bar"><div class="progress-fill calorie" id="cal-bar" style="width:0%"></div></div>
+      </div>
+
+      <div class="card">
+        <h2>マクロ栄養素</h2>
+        <div class="grid-3">
+          <div class="macro-block">
+            <div class="val" style="color:var(--protein)"><span id="p-val">0</span>g</div>
+            <div class="tgt">目標 <span id="p-tgt">0</span>g</div>
+            <div class="progress-bar"><div class="progress-fill protein" id="p-bar" style="width:0%"></div></div>
+          </div>
+          <div class="macro-block">
+            <div class="val" style="color:var(--fat)"><span id="f-val">0</span>g</div>
+            <div class="tgt">目標 <span id="f-tgt">0</span>g</div>
+            <div class="progress-bar"><div class="progress-fill fat" id="f-bar" style="width:0%"></div></div>
+          </div>
+          <div class="macro-block">
+            <div class="val" style="color:var(--carb)"><span id="c-val">0</span>g</div>
+            <div class="tgt">目標 <span id="c-tgt">0</span>g</div>
+            <div class="progress-bar"><div class="progress-fill carb" id="c-bar" style="width:0%"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>食事ログ</h2>
+        <div id="meals-container"></div>
+      </div>
+    </section>
+
+    <!-- =================== WEIGHT VIEW =================== -->
+    <section class="view" id="view-weight">
+      <div class="card">
+        <h2>体重を記録</h2>
+        <div class="form-group">
+          <label>日付</label>
+          <input type="date" id="weight-date">
+        </div>
+        <div class="form-group">
+          <label>体重 (kg)</label>
+          <input type="number" step="0.05" id="weight-input" placeholder="例: 65.50">
+        </div>
+        <button class="full" onclick="addWeight()">記録する</button>
+      </div>
+
+      <div class="card">
+        <h2>適応型TDEE</h2>
+        <div class="row between">
+          <div>
+            <div class="big-number" id="tdee-display">—</div>
+            <div class="label">推定TDEE (kcal/日) <span class="badge" id="tdee-badge">推定</span></div>
+          </div>
+          <div style="text-align:right;">
+            <div><span id="weight-current">—</span> kg</div>
+            <div class="label">現在体重 (7日平均)</div>
+          </div>
+        </div>
+        <div class="tdee-info" id="tdee-info">体重と食事を記録するほど、TDEEの精度が上がります。</div>
+      </div>
+
+      <div class="card">
+        <h2>体重履歴</h2>
+        <div id="weight-history"></div>
+      </div>
+    </section>
+
+    <!-- =================== STATS VIEW =================== -->
+    <section class="view" id="view-stats">
+      <div class="card">
+        <h2>体重推移</h2>
+        <div class="chart-container"><canvas id="chart-weight"></canvas></div>
+      </div>
+      <div class="card">
+        <h2>カロリー摂取推移 (7日)</h2>
+        <div class="chart-container"><canvas id="chart-calorie"></canvas></div>
+      </div>
+      <div class="card">
+        <h2>マクロ配分 (今日)</h2>
+        <div class="chart-container" style="height:200px;"><canvas id="chart-macro"></canvas></div>
+      </div>
+      <div class="card">
+        <h2>サマリー</h2>
+        <div id="stats-summary"></div>
+      </div>
+    </section>
+
+    <!-- =================== FOODS VIEW =================== -->
+    <section class="view" id="view-foods">
+      <div class="card">
+        <h2>食品データベース</h2>
+        <div class="search-bar">
+          <input type="text" id="food-search" placeholder="食品を検索..." oninput="renderFoodDatabase()">
+        </div>
+        <div class="row" style="gap:8px;margin-bottom:12px;">
+          <button class="full" onclick="openFoodModal()">＋ 新規追加</button>
+          <button class="full secondary" onclick="openBarcodeModal()">📷 バーコード</button>
+        </div>
+        <div id="food-database"></div>
+      </div>
+    </section>
+
+    <!-- =================== SETTINGS VIEW =================== -->
+    <section class="view" id="view-settings">
+      <div class="card">
+        <h2>基本設定</h2>
+        <div class="form-group">
+          <label>性別</label>
+          <select id="set-sex">
+            <option value="male">男性</option>
+            <option value="female">女性</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>年齢</label>
+            <input type="number" id="set-age" placeholder="30">
+          </div>
+          <div class="form-group">
+            <label>身長 (cm)</label>
+            <input type="number" step="0.1" id="set-height" placeholder="170">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>活動レベル</label>
+          <select id="set-activity">
+            <option value="1.2">座位中心 (×1.2)</option>
+            <option value="1.375">軽い活動 (×1.375)</option>
+            <option value="1.55" selected>中程度の活動 (×1.55)</option>
+            <option value="1.725">活発 (×1.725)</option>
+            <option value="1.9">非常に活発 (×1.9)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>目標</h2>
+        <div class="form-group">
+          <label>目標</label>
+          <select id="set-goal" onchange="updateGoalUI()">
+            <option value="cut">減量</option>
+            <option value="maintain" selected>維持</option>
+            <option value="bulk">増量</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>目標体重 (kg)</label>
+            <input type="number" step="0.1" id="set-target-weight" placeholder="例: 60">
+          </div>
+          <div class="form-group">
+            <label>達成日</label>
+            <input type="date" id="set-target-date">
+          </div>
+        </div>
+        <div class="info-text">目標とTDEEから1日の必要カロリーを自動計算します</div>
+      </div>
+
+      <div class="card">
+        <h2>マクロ目標 (g/日)</h2>
+        <div class="form-group">
+          <label>計算モード</label>
+          <select id="set-macro-mode" onchange="updateMacroUI()">
+            <option value="auto" selected>自動 (P:体重×2g / F:総kcal×25% / C:残り)</option>
+            <option value="manual">手動入力</option>
+          </select>
+        </div>
+        <div class="form-row" id="macro-manual" style="display:none;">
+          <div class="form-group">
+            <label>タンパク質 (g)</label>
+            <input type="number" id="set-p" placeholder="120">
+          </div>
+          <div class="form-group">
+            <label>脂質 (g)</label>
+            <input type="number" id="set-f" placeholder="60">
+          </div>
+          <div class="form-group" style="grid-column:span 2;">
+            <label>炭水化物 (g)</label>
+            <input type="number" id="set-c" placeholder="250">
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>データ管理</h2>
+        <button class="full" onclick="saveSettings()">設定を保存</button>
+        <hr>
+        <button class="full secondary" onclick="exportData()">📥 全データをエクスポート (JSON)</button>
+        <div class="info-text">将来iOSアプリへ移行する際に利用できます</div>
+        <hr>
+        <input type="file" id="import-file" accept=".json" style="display:none" onchange="importData(event)">
+        <button class="full secondary" onclick="document.getElementById('import-file').click()">📤 データをインポート</button>
+        <hr>
+        <button class="full danger" onclick="resetAll()">全データをリセット</button>
+      </div>
+    </section>
+  </main>
+
+  <nav class="bottom-nav">
+    <button class="nav-item active" data-view="today" onclick="switchView('today')">
+      <span class="icon">🍽️</span>今日
+    </button>
+    <button class="nav-item" data-view="weight" onclick="switchView('weight')">
+      <span class="icon">⚖️</span>体重
+    </button>
+    <button class="nav-item" data-view="stats" onclick="switchView('stats')">
+      <span class="icon">📊</span>分析
+    </button>
+    <button class="nav-item" data-view="foods" onclick="switchView('foods')">
+      <span class="icon">🥗</span>食品
+    </button>
+    <button class="nav-item" data-view="settings" onclick="switchView('settings')">
+      <span class="icon">⚙️</span>設定
+    </button>
+  </nav>
+</div>
+
+<!-- =================== MODAL: Add food entry =================== -->
+<div class="modal-overlay" id="modal-add-entry">
+  <div class="modal">
+    <h2>食事に追加</h2>
+    <div class="form-group">
+      <label>食品を選択</label>
+      <select id="entry-food-select"></select>
+    </div>
+    <div class="form-group">
+      <label>分量 (g) <span id="entry-serving-hint" class="info-text"></span></label>
+      <input type="number" step="1" id="entry-amount" placeholder="100" oninput="updateEntryPreview()">
+    </div>
+    <div class="form-group">
+      <label>食事区分</label>
+      <select id="entry-meal">
+        <option value="breakfast">朝食</option>
+        <option value="lunch">昼食</option>
+        <option value="dinner">夕食</option>
+        <option value="snack">間食</option>
+      </select>
+    </div>
+    <div class="tdee-info" id="entry-preview">—</div>
+    <div class="actions">
+      <button class="secondary" onclick="closeModal('modal-add-entry')">キャンセル</button>
+      <button onclick="saveEntry()">追加</button>
+    </div>
+  </div>
+</div>
+
+<!-- =================== MODAL: Add food to DB =================== -->
+<div class="modal-overlay" id="modal-add-food">
+  <div class="modal">
+    <h2>食品を登録</h2>
+    <div class="form-group">
+      <label>食品名</label>
+      <input type="text" id="food-name" placeholder="例: 鶏むね肉(皮なし)">
+    </div>
+    <div class="form-group">
+      <label>1食分の量 (g)</label>
+      <input type="number" id="food-serving" placeholder="100" value="100">
+    </div>
+    <div class="info-text" style="margin-bottom:8px;">以下は「1食分の量」あたりの栄養素</div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>カロリー (kcal)</label>
+        <input type="number" step="0.1" id="food-kcal" placeholder="165">
+      </div>
+      <div class="form-group">
+        <label>タンパク質 (g)</label>
+        <input type="number" step="0.1" id="food-p" placeholder="31">
+      </div>
+      <div class="form-group">
+        <label>脂質 (g)</label>
+        <input type="number" step="0.1" id="food-f" placeholder="3.6">
+      </div>
+      <div class="form-group">
+        <label>炭水化物 (g)</label>
+        <input type="number" step="0.1" id="food-c" placeholder="0">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>バーコード (任意)</label>
+      <input type="text" id="food-barcode" placeholder="JAN/EAN">
+    </div>
+    <div class="actions">
+      <button class="secondary" onclick="closeModal('modal-add-food')">キャンセル</button>
+      <button onclick="saveFood()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- =================== MODAL: Barcode lookup =================== -->
+<div class="modal-overlay" id="modal-barcode">
+  <div class="modal">
+    <h2>バーコードから食品を取得</h2>
+    <div class="info-text" style="margin-bottom:12px;">Open Food Facts データベースから検索します（日本商品も多数登録あり）</div>
+    <div class="form-group">
+      <label>バーコード番号 (JAN/EAN)</label>
+      <input type="text" id="barcode-input" placeholder="例: 4901330571382" inputmode="numeric">
+    </div>
+    <div id="barcode-result"></div>
+    <div class="actions">
+      <button class="secondary" onclick="closeModal('modal-barcode')">閉じる</button>
+      <button onclick="lookupBarcode()">検索</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// =====================================================================
+// MyMacro - Adaptive food/macro tracker (prototype)
+// Storage: localStorage (key: mymacro_v1)
+// =====================================================================
+
+const STORAGE_KEY = 'mymacro_v1';
+
+// ---------- State ----------
+let state = loadState();
+let currentDate = todayStr();
+let charts = {};
+
+function defaultState() {
+  return {
+    settings: {
+      sex: 'male',
+      age: 30,
+      height: 170,
+      activity: 1.55,
+      goal: 'maintain',
+      targetWeight: null,
+      targetDate: null,
+      macroMode: 'auto',
+      manualP: 120, manualF: 60, manualC: 250,
+    },
+    weights: {},  // { 'YYYY-MM-DD': 65.5 }
+    entries: {},  // { 'YYYY-MM-DD': [ {foodId, amount, meal} ] }
+    foods: [
+      { id: '_default_1', name: '鶏むね肉(皮なし・生)', serving: 100, kcal: 105, p: 23.3, f: 1.9, c: 0 },
+      { id: '_default_2', name: '白米(炊いた)', serving: 150, kcal: 234, p: 3.8, f: 0.5, c: 55.7 },
+      { id: '_default_3', name: '玄米(炊いた)', serving: 150, kcal: 248, p: 4.2, f: 1.5, c: 53.4 },
+      { id: '_default_4', name: '鶏卵(L)', serving: 60, kcal: 91, p: 7.4, f: 6.2, c: 0.2 },
+      { id: '_default_5', name: 'プロテイン(ホエイ・1スクープ)', serving: 30, kcal: 116, p: 24, f: 1.5, c: 2 },
+      { id: '_default_6', name: 'ブロッコリー(茹で)', serving: 100, kcal: 33, p: 3.5, f: 0.4, c: 5.2 },
+      { id: '_default_7', name: 'バナナ(中)', serving: 100, kcal: 86, p: 1.1, f: 0.2, c: 22.5 },
+      { id: '_default_8', name: 'オートミール(乾)', serving: 40, kcal: 152, p: 5.5, f: 2.3, c: 27.6 },
+    ],
+    tdee: null,
+    tdeeMethod: 'estimate', // 'estimate' | 'calculated'
+    tdeeHistory: [], // { date, tdee }
+  };
+}
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return defaultState();
+    const parsed = JSON.parse(raw);
+    // merge with defaults to be safe
+    const def = defaultState();
+    return { ...def, ...parsed,
+      settings: { ...def.settings, ...(parsed.settings || {}) },
+      foods: parsed.foods && parsed.foods.length ? parsed.foods : def.foods,
+    };
+  } catch (e) {
+    console.error('loadState error', e);
+    return defaultState();
+  }
+}
+
+function saveState() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+// ---------- Helpers ----------
+function todayStr(offset = 0) {
+  const d = new Date();
+  d.setDate(d.getDate() + offset);
+  return d.toISOString().slice(0, 10);
+}
+function fmtDate(s) {
+  const d = new Date(s + 'T00:00:00');
+  return `${d.getMonth()+1}/${d.getDate()} (${'日月火水木金土'[d.getDay()]})`;
+}
+function clamp(n, a, b) { return Math.max(a, Math.min(b, n)); }
+function round1(n) { return Math.round(n * 10) / 10; }
+function uid() { return 'f_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7); }
+
+// ---------- Mifflin-St Jeor BMR ----------
+function bmrMSJ(weight, height, age, sex) {
+  const base = 10 * weight + 6.25 * height - 5 * age;
+  return sex === 'male' ? base + 5 : base - 161;
+}
+
+function latestWeight() {
+  const keys = Object.keys(state.weights).sort();
+  if (!keys.length) return null;
+  return state.weights[keys[keys.length - 1]];
+}
+
+function weightAvg(days = 7, endDate = currentDate) {
+  // moving average around endDate looking back `days` days
+  const end = new Date(endDate);
+  const vals = [];
+  for (let i = 0; i < days; i++) {
+    const d = new Date(end);
+    d.setDate(d.getDate() - i);
+    const k = d.toISOString().slice(0, 10);
+    if (state.weights[k] != null) vals.push(state.weights[k]);
+  }
+  if (!vals.length) return null;
+  return vals.reduce((a, b) => a + b, 0) / vals.length;
+}
+
+// ---------- Adaptive TDEE ----------
+// Approach (MacroFactor-inspired):
+//   For each pair of weight-average measurements separated by N>=7 days,
+//   compute the implied TDEE:
+//       implied = avg_intake + (delta_weight_kg * 7700 / N)
+//   where 7700 kcal ≈ 1 kg of body mass change.
+//   We weight recent windows more heavily (exponential decay).
+function computeAdaptiveTDEE() {
+  const dates = Object.keys(state.weights).sort();
+  if (dates.length < 2) {
+    // Fallback: Mifflin-St Jeor × activity
+    const w = latestWeight();
+    if (!w) return { tdee: null, method: 'none' };
+    const bmr = bmrMSJ(w, state.settings.height, state.settings.age, state.settings.sex);
+    return { tdee: Math.round(bmr * state.settings.activity), method: 'estimate' };
+  }
+
+  // Generate 7-day weight averages
+  const series = []; // { date, avg }
+  for (const d of dates) {
+    const a = weightAvg(7, d);
+    if (a != null) series.push({ date: d, avg: a });
+  }
+
+  // Use pairs separated by >= 7 days
+  const samples = [];
+  const minWindow = 7;
+  for (let i = 0; i < series.length; i++) {
+    for (let j = i + 1; j < series.length; j++) {
+      const dA = new Date(series[i].date);
+      const dB = new Date(series[j].date);
+      const days = (dB - dA) / 86400000;
+      if (days < minWindow) continue;
+      // Avg intake during window
+      const intake = avgIntakeBetween(series[i].date, series[j].date);
+      if (intake == null) continue;
+      const deltaWeight = series[j].avg - series[i].avg;
+      const implied = intake + (deltaWeight * 7700 / days);
+      // Sanity bounds
+      if (implied < 800 || implied > 6000) continue;
+      // Weight: exponential by recency of end date
+      const ageDays = (new Date() - dB) / 86400000;
+      const w = Math.exp(-ageDays / 30); // half-weight ~20d
+      samples.push({ implied, w, days });
+    }
+  }
+
+  if (samples.length < 1) {
+    const w = latestWeight();
+    if (!w) return { tdee: null, method: 'none' };
+    const bmr = bmrMSJ(w, state.settings.height, state.settings.age, state.settings.sex);
+    return { tdee: Math.round(bmr * state.settings.activity), method: 'estimate' };
+  }
+
+  const numer = samples.reduce((acc, s) => acc + s.implied * s.w, 0);
+  const denom = samples.reduce((acc, s) => acc + s.w, 0);
+  const tdee = numer / denom;
+  return { tdee: Math.round(tdee), method: 'calculated', samples: samples.length };
+}
+
+function avgIntakeBetween(startDate, endDate) {
+  // Average daily intake of logged days strictly within (startDate, endDate]
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  const vals = [];
+  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+    const k = d.toISOString().slice(0, 10);
+    if (state.entries[k] && state.entries[k].length) {
+      vals.push(dayTotals(k).kcal);
+    }
+  }
+  if (vals.length < 3) return null; // need a few datapoints
+  return vals.reduce((a, b) => a + b, 0) / vals.length;
+}
+
+// ---------- Calorie / Macro target ----------
+function calorieTarget() {
+  const t = computeAdaptiveTDEE();
+  if (!t.tdee) return null;
+  let target = t.tdee;
+  // adjust by goal & rate
+  const s = state.settings;
+  if (s.goal === 'maintain') return target;
+  if (s.targetWeight && s.targetDate) {
+    const w = latestWeight();
+    if (w) {
+      const daysLeft = Math.max(7, (new Date(s.targetDate) - new Date()) / 86400000);
+      const deltaKg = s.targetWeight - w;
+      const dailyDelta = (deltaKg * 7700) / daysLeft; // kcal/day to add or subtract
+      target = t.tdee + dailyDelta;
+      // safety
+      const bmr = bmrMSJ(w, s.height, s.age, s.sex);
+      target = clamp(target, bmr * 1.0, t.tdee + 1200);
+    }
+  } else {
+    // sensible default if no target set
+    if (s.goal === 'cut') target = t.tdee - 400;
+    if (s.goal === 'bulk') target = t.tdee + 300;
+  }
+  return Math.round(target);
+}
+
+function macroTargets() {
+  const kcal = calorieTarget() || 2000;
+  const s = state.settings;
+  if (s.macroMode === 'manual') {
+    return { p: +s.manualP || 0, f: +s.manualF || 0, c: +s.manualC || 0, kcal };
+  }
+  const w = latestWeight() || 70;
+  const p = Math.round(w * 2);             // P: 2g/kg
+  const fKcal = kcal * 0.25;               // F: 25% of total kcal
+  const f = Math.round(fKcal / 9);
+  const remainingKcal = kcal - p * 4 - f * 9;
+  const c = Math.max(0, Math.round(remainingKcal / 4));
+  return { p, f, c, kcal };
+}
+
+// ---------- Day totals ----------
+function dayTotals(date) {
+  const arr = state.entries[date] || [];
+  let kcal = 0, p = 0, f = 0, c = 0;
+  for (const e of arr) {
+    const food = state.foods.find(x => x.id === e.foodId);
+    if (!food) continue;
+    const factor = e.amount / food.serving;
+    kcal += food.kcal * factor;
+    p += food.p * factor;
+    f += food.f * factor;
+    c += food.c * factor;
+  }
+  return { kcal: Math.round(kcal), p: round1(p), f: round1(f), c: round1(c) };
+}
+
+// =====================================================================
+// UI
+// =====================================================================
+
+function switchView(name) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('view-' + name).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.toggle('active', b.dataset.view === name));
+  // refresh
+  if (name === 'today') renderToday();
+  if (name === 'weight') renderWeight();
+  if (name === 'stats') renderStats();
+  if (name === 'foods') renderFoodDatabase();
+  if (name === 'settings') loadSettingsForm();
+  // update header
+  const titles = {today:'今日', weight:'体重 & TDEE', stats:'分析', foods:'食品DB', settings:'設定'};
+  document.getElementById('header-title').textContent = 'MyMacro';
+  document.getElementById('header-sub').textContent = titles[name] || '';
+}
+
+function changeDay(delta) {
+  const d = new Date(currentDate);
+  d.setDate(d.getDate() + delta);
+  currentDate = d.toISOString().slice(0, 10);
+  renderToday();
+}
+
+function renderToday() {
+  document.getElementById('today-date').textContent = fmtDate(currentDate);
+  const t = dayTotals(currentDate);
+  const tgt = macroTargets();
+  document.getElementById('cal-consumed').textContent = t.kcal;
+  document.getElementById('cal-target').textContent = tgt.kcal;
+  document.getElementById('cal-remaining').textContent = Math.max(0, tgt.kcal - t.kcal);
+  document.getElementById('cal-bar').style.width = clamp(t.kcal / tgt.kcal * 100, 0, 100) + '%';
+  document.getElementById('p-val').textContent = t.p;
+  document.getElementById('f-val').textContent = t.f;
+  document.getElementById('c-val').textContent = t.c;
+  document.getElementById('p-tgt').textContent = tgt.p;
+  document.getElementById('f-tgt').textContent = tgt.f;
+  document.getElementById('c-tgt').textContent = tgt.c;
+  document.getElementById('p-bar').style.width = clamp(t.p / tgt.p * 100, 0, 100) + '%';
+  document.getElementById('f-bar').style.width = clamp(t.f / tgt.f * 100, 0, 100) + '%';
+  document.getElementById('c-bar').style.width = clamp(t.c / tgt.c * 100, 0, 100) + '%';
+
+  // Meals
+  const meals = ['breakfast', 'lunch', 'dinner', 'snack'];
+  const labels = { breakfast: '朝食', lunch: '昼食', dinner: '夕食', snack: '間食' };
+  const container = document.getElementById('meals-container');
+  container.innerHTML = '';
+  const entries = state.entries[currentDate] || [];
+  meals.forEach(m => {
+    const mealEntries = entries.filter(e => e.meal === m);
+    let html = `<div class="meal-section"><div class="meal-title"><span>${labels[m]}</span>
+      <button class="ghost meal-add" onclick="openEntryModal('${m}')">＋</button></div>`;
+    if (!mealEntries.length) {
+      html += '<div class="empty" style="padding:8px;">記録なし</div>';
+    } else {
+      mealEntries.forEach((e, idx) => {
+        const food = state.foods.find(x => x.id === e.foodId);
+        if (!food) return;
+        const factor = e.amount / food.serving;
+        const kcal = Math.round(food.kcal * factor);
+        const idxAll = entries.indexOf(e);
+        html += `<div class="food-item">
+          <div>
+            <div class="name">${escapeHtml(food.name)}</div>
+            <div class="meta">${e.amount}g ・ P${round1(food.p*factor)} F${round1(food.f*factor)} C${round1(food.c*factor)}</div>
+          </div>
+          <div style="text-align:right;">
+            <div class="kcal">${kcal} kcal</div>
+            <button class="small ghost" onclick="deleteEntry('${currentDate}', ${idxAll})">削除</button>
+          </div>
+        </div>`;
+      });
+    }
+    html += '</div>';
+    container.innerHTML += html;
+  });
+}
+
+function renderWeight() {
+  document.getElementById('weight-date').value = todayStr();
+  const cur = weightAvg(7);
+  document.getElementById('weight-current').textContent = cur ? round1(cur) : '—';
+  const t = computeAdaptiveTDEE();
+  document.getElementById('tdee-display').textContent = t.tdee || '—';
+  const badge = document.getElementById('tdee-badge');
+  badge.textContent = t.method === 'calculated' ? '実測' : '推定';
+  badge.className = 'badge ' + (t.method === 'calculated' ? 'calc' : 'est');
+  const info = document.getElementById('tdee-info');
+  if (t.method === 'calculated') {
+    info.textContent = `${t.samples}個のデータ窓から算出されました。体重と食事を記録し続けることで、あなた専用の代謝量が継続的に更新されます。`;
+  } else if (t.tdee) {
+    info.textContent = `Mifflin-St Jeor式 + 活動係数(×${state.settings.activity}) による推定値です。7日以上の体重・食事記録が蓄積されると、実測ベースに切り替わります。`;
+  } else {
+    info.textContent = '体重と食事の記録を始めましょう。';
+  }
+
+  // history
+  const dates = Object.keys(state.weights).sort().reverse().slice(0, 30);
+  const hist = document.getElementById('weight-history');
+  if (!dates.length) {
+    hist.innerHTML = '<div class="empty">記録なし</div>';
+  } else {
+    hist.innerHTML = dates.map(d => {
+      const v = state.weights[d];
+      return `<div class="food-item">
+        <div><div class="name">${fmtDate(d)}</div></div>
+        <div style="text-align:right;">
+          <div class="kcal">${v} kg</div>
+          <button class="small ghost" onclick="deleteWeight('${d}')">削除</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+}
+
+function addWeight() {
+  const d = document.getElementById('weight-date').value;
+  const v = parseFloat(document.getElementById('weight-input').value);
+  if (!d || !v || v < 20 || v > 300) { alert('日付と体重(20-300kg)を入力してください'); return; }
+  state.weights[d] = v;
+  saveState();
+  document.getElementById('weight-input').value = '';
+  renderWeight();
+}
+
+function deleteWeight(d) {
+  if (!confirm(`${fmtDate(d)}の記録を削除しますか？`)) return;
+  delete state.weights[d];
+  saveState();
+  renderWeight();
+}
+
+// ---------- Food DB ----------
+function renderFoodDatabase() {
+  const q = (document.getElementById('food-search').value || '').toLowerCase();
+  const list = state.foods.filter(f => !q || f.name.toLowerCase().includes(q) || (f.barcode || '').includes(q));
+  const el = document.getElementById('food-database');
+  if (!list.length) {
+    el.innerHTML = '<div class="empty">該当なし</div>';
+    return;
+  }
+  el.innerHTML = list.map(f => `
+    <div class="food-list-item">
+      <div class="row between">
+        <div>
+          <div class="name">${escapeHtml(f.name)}</div>
+          <div class="meta">${f.serving}g あたり: ${Math.round(f.kcal)}kcal / P${f.p} F${f.f} C${f.c}</div>
+        </div>
+        <div>
+          <button class="small" onclick="openEntryModalWithFood('${f.id}')">追加</button>
+          <button class="small ghost" onclick="deleteFood('${f.id}')">×</button>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function openFoodModal() {
+  ['food-name','food-serving','food-kcal','food-p','food-f','food-c','food-barcode'].forEach(id => {
+    document.getElementById(id).value = id === 'food-serving' ? '100' : '';
+  });
+  document.getElementById('modal-add-food').classList.add('active');
+}
+
+function saveFood() {
+  const food = {
+    id: uid(),
+    name: document.getElementById('food-name').value.trim(),
+    serving: parseFloat(document.getElementById('food-serving').value) || 100,
+    kcal: parseFloat(document.getElementById('food-kcal').value) || 0,
+    p: parseFloat(document.getElementById('food-p').value) || 0,
+    f: parseFloat(document.getElementById('food-f').value) || 0,
+    c: parseFloat(document.getElementById('food-c').value) || 0,
+    barcode: document.getElementById('food-barcode').value.trim() || null,
+  };
+  if (!food.name) { alert('食品名を入力してください'); return; }
+  state.foods.push(food);
+  saveState();
+  closeModal('modal-add-food');
+  renderFoodDatabase();
+}
+
+function deleteFood(id) {
+  if (!confirm('この食品を削除しますか？')) return;
+  state.foods = state.foods.filter(f => f.id !== id);
+  saveState();
+  renderFoodDatabase();
+}
+
+// ---------- Entry modal ----------
+let entryMealSelected = 'breakfast';
+function openEntryModal(meal) {
+  entryMealSelected = meal || 'breakfast';
+  const sel = document.getElementById('entry-food-select');
+  sel.innerHTML = state.foods.map(f => `<option value="${f.id}">${escapeHtml(f.name)} (${f.serving}g/${Math.round(f.kcal)}kcal)</option>`).join('');
+  document.getElementById('entry-amount').value = state.foods[0] ? state.foods[0].serving : 100;
+  document.getElementById('entry-meal').value = entryMealSelected;
+  sel.onchange = updateEntryPreview;
+  updateEntryPreview();
+  document.getElementById('modal-add-entry').classList.add('active');
+}
+
+function openEntryModalWithFood(foodId) {
+  switchView('today');
+  openEntryModal('breakfast');
+  document.getElementById('entry-food-select').value = foodId;
+  const f = state.foods.find(x => x.id === foodId);
+  if (f) document.getElementById('entry-amount').value = f.serving;
+  updateEntryPreview();
+}
+
+function updateEntryPreview() {
+  const id = document.getElementById('entry-food-select').value;
+  const amt = parseFloat(document.getElementById('entry-amount').value) || 0;
+  const f = state.foods.find(x => x.id === id);
+  if (!f) return;
+  const factor = amt / f.serving;
+  document.getElementById('entry-serving-hint').textContent = `(基準: ${f.serving}g)`;
+  document.getElementById('entry-preview').innerHTML =
+    `合計: <strong>${Math.round(f.kcal * factor)} kcal</strong> ・ P${round1(f.p*factor)} F${round1(f.f*factor)} C${round1(f.c*factor)}`;
+}
+
+function saveEntry() {
+  const id = document.getElementById('entry-food-select').value;
+  const amt = parseFloat(document.getElementById('entry-amount').value);
+  const meal = document.getElementById('entry-meal').value;
+  if (!id || !amt || amt <= 0) { alert('食品と分量を入力してください'); return; }
+  if (!state.entries[currentDate]) state.entries[currentDate] = [];
+  state.entries[currentDate].push({ foodId: id, amount: amt, meal });
+  saveState();
+  closeModal('modal-add-entry');
+  renderToday();
+}
+
+function deleteEntry(date, idx) {
+  state.entries[date].splice(idx, 1);
+  saveState();
+  renderToday();
+}
+
+// ---------- Barcode ----------
+function openBarcodeModal() {
+  document.getElementById('barcode-input').value = '';
+  document.getElementById('barcode-result').innerHTML = '';
+  document.getElementById('modal-barcode').classList.add('active');
+}
+
+async function lookupBarcode() {
+  const code = document.getElementById('barcode-input').value.trim();
+  if (!code) return;
+  const result = document.getElementById('barcode-result');
+  result.innerHTML = '<div class="info-text">検索中...</div>';
+  try {
+    const res = await fetch(`https://world.openfoodfacts.org/api/v2/product/${code}.json`);
+    const data = await res.json();
+    if (data.status !== 1 || !data.product) {
+      result.innerHTML = '<div class="info-text">商品が見つかりませんでした。手動で登録してください。</div>';
+      return;
+    }
+    const p = data.product;
+    const n = p.nutriments || {};
+    const name = p.product_name_ja || p.product_name || p.generic_name || '不明';
+    const kcal100 = n['energy-kcal_100g'] || (n['energy_100g'] ? n['energy_100g'] / 4.184 : 0);
+    const prot = n.proteins_100g || 0;
+    const fat = n.fat_100g || 0;
+    const carb = n.carbohydrates_100g || 0;
+    result.innerHTML = `<div class="food-list-item" style="margin-top:8px;">
+      <div class="name">${escapeHtml(name)}</div>
+      <div class="meta">100gあたり: ${Math.round(kcal100)}kcal / P${round1(prot)} F${round1(fat)} C${round1(carb)}</div>
+      <button class="small" style="margin-top:6px;" onclick='saveBarcodeFood(${JSON.stringify({name, kcal100, prot, fat, carb, code})})'>食品DBに追加</button>
+    </div>`;
+  } catch (e) {
+    result.innerHTML = '<div class="info-text">通信エラーが発生しました</div>';
+  }
+}
+
+function saveBarcodeFood(d) {
+  state.foods.push({
+    id: uid(),
+    name: d.name,
+    serving: 100,
+    kcal: round1(d.kcal100),
+    p: round1(d.prot),
+    f: round1(d.fat),
+    c: round1(d.carb),
+    barcode: d.code,
+  });
+  saveState();
+  closeModal('modal-barcode');
+  alert('食品DBに追加しました');
+  if (document.getElementById('view-foods').classList.contains('active')) renderFoodDatabase();
+}
+
+// ---------- Modal ----------
+function closeModal(id) {
+  document.getElementById(id).classList.remove('active');
+}
+
+// ---------- Settings ----------
+function loadSettingsForm() {
+  const s = state.settings;
+  document.getElementById('set-sex').value = s.sex;
+  document.getElementById('set-age').value = s.age;
+  document.getElementById('set-height').value = s.height;
+  document.getElementById('set-activity').value = s.activity;
+  document.getElementById('set-goal').value = s.goal;
+  document.getElementById('set-target-weight').value = s.targetWeight || '';
+  document.getElementById('set-target-date').value = s.targetDate || '';
+  document.getElementById('set-macro-mode').value = s.macroMode;
+  document.getElementById('set-p').value = s.manualP;
+  document.getElementById('set-f').value = s.manualF;
+  document.getElementById('set-c').value = s.manualC;
+  updateMacroUI();
+}
+
+function updateMacroUI() {
+  const m = document.getElementById('set-macro-mode').value;
+  document.getElementById('macro-manual').style.display = m === 'manual' ? 'grid' : 'none';
+}
+function updateGoalUI() { /* placeholder */ }
+
+function saveSettings() {
+  const s = state.settings;
+  s.sex = document.getElementById('set-sex').value;
+  s.age = +document.getElementById('set-age').value || 30;
+  s.height = +document.getElementById('set-height').value || 170;
+  s.activity = +document.getElementById('set-activity').value;
+  s.goal = document.getElementById('set-goal').value;
+  s.targetWeight = +document.getElementById('set-target-weight').value || null;
+  s.targetDate = document.getElementById('set-target-date').value || null;
+  s.macroMode = document.getElementById('set-macro-mode').value;
+  s.manualP = +document.getElementById('set-p').value || 0;
+  s.manualF = +document.getElementById('set-f').value || 0;
+  s.manualC = +document.getElementById('set-c').value || 0;
+  saveState();
+  alert('設定を保存しました');
+}
+
+function exportData() {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `mymacro_export_${todayStr()}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importData(ev) {
+  const file = ev.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!confirm('既存のデータが上書きされます。続行しますか？')) return;
+      state = data;
+      saveState();
+      alert('インポートしました');
+      location.reload();
+    } catch (err) {
+      alert('インポートに失敗しました: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+}
+
+function resetAll() {
+  if (!confirm('本当に全てのデータをリセットしますか？(取り消せません)')) return;
+  if (!confirm('もう一度確認します。本当によろしいですか？')) return;
+  localStorage.removeItem(STORAGE_KEY);
+  state = defaultState();
+  location.reload();
+}
+
+// ---------- Stats / Charts ----------
+function renderStats() {
+  // Weight chart
+  const weightDates = Object.keys(state.weights).sort().slice(-90);
+  const weightVals = weightDates.map(d => state.weights[d]);
+  const weightMA = weightDates.map(d => weightAvg(7, d));
+  renderChart('chart-weight', 'line', {
+    labels: weightDates.map(d => d.slice(5)),
+    datasets: [
+      { label: '体重', data: weightVals, borderColor: '#4fc3f7', backgroundColor: 'rgba(79,195,247,.2)', pointRadius: 2 },
+      { label: '7日平均', data: weightMA, borderColor: '#ffa726', borderDash: [5,5], pointRadius: 0 },
+    ],
+  });
+
+  // Calorie chart (last 14 days)
+  const days = [];
+  for (let i = 13; i >= 0; i--) days.push(todayStr(-i));
+  const kcalData = days.map(d => dayTotals(d).kcal);
+  const tgt = calorieTarget() || 0;
+  renderChart('chart-calorie', 'bar', {
+    labels: days.map(d => d.slice(5)),
+    datasets: [
+      { label: '摂取', data: kcalData, backgroundColor: '#4fc3f7' },
+      { label: '目標', data: days.map(() => tgt), type: 'line', borderColor: '#ffa726', borderDash: [4,4], pointRadius: 0 },
+    ],
+  });
+
+  // Macro pie
+  const t = dayTotals(currentDate);
+  renderChart('chart-macro', 'doughnut', {
+    labels: ['タンパク質 kcal', '脂質 kcal', '炭水化物 kcal'],
+    datasets: [{
+      data: [t.p * 4, t.f * 9, t.c * 4],
+      backgroundColor: ['#ef5350', '#ffb74d', '#66bb6a'],
+    }],
+  });
+
+  // Summary
+  const tdee = computeAdaptiveTDEE();
+  const w = latestWeight();
+  const w7 = weightAvg(7);
+  const w30 = weightAvg(30);
+  const summary = document.getElementById('stats-summary');
+  summary.innerHTML = `
+    <div class="row between"><span>最新体重</span><strong>${w || '—'} kg</strong></div>
+    <hr>
+    <div class="row between"><span>7日平均体重</span><strong>${w7 ? round1(w7) : '—'} kg</strong></div>
+    <hr>
+    <div class="row between"><span>30日平均体重</span><strong>${w30 ? round1(w30) : '—'} kg</strong></div>
+    <hr>
+    <div class="row between"><span>適応型TDEE</span><strong>${tdee.tdee || '—'} kcal</strong></div>
+    <hr>
+    <div class="row between"><span>本日のカロリー目標</span><strong>${calorieTarget() || '—'} kcal</strong></div>
+    <hr>
+    <div class="row between"><span>登録済み食品数</span><strong>${state.foods.length}</strong></div>
+  `;
+}
+
+function renderChart(id, type, data) {
+  if (charts[id]) charts[id].destroy();
+  const ctx = document.getElementById(id).getContext('2d');
+  charts[id] = new Chart(ctx, {
+    type,
+    data,
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { color: '#e6edf3', font: { size: 11 } } },
+      },
+      scales: type === 'doughnut' ? {} : {
+        x: { ticks: { color: '#8b98a5', font: { size: 10 } }, grid: { color: '#2d3845' } },
+        y: { ticks: { color: '#8b98a5', font: { size: 10 } }, grid: { color: '#2d3845' } },
+      },
+    },
+  });
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// ---------- Boot ----------
+renderToday();
+</script>
+</body>
+</html>
