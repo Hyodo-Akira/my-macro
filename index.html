@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -113,7 +114,7 @@
     font-family: inherit;
     width: 100%;
   }
-  input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+  input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
   label { display: block; font-size: 12px; color: var(--text-dim); margin-bottom: 4px; }
 
   nav.bottom-nav {
@@ -150,6 +151,7 @@
     align-items: center;
     padding: 10px 0;
     border-bottom: 1px solid var(--border);
+    gap: 8px;
   }
   .food-item:last-child { border-bottom: none; }
   .food-item .name { font-weight: 500; }
@@ -249,8 +251,37 @@
     border-radius: 8px;
     margin-bottom: 6px;
     cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
   }
   .food-list-item:active { background: var(--border); }
+  .food-list-item .body { flex: 1; min-width: 0; }
+  .food-list-item .body .name { font-weight: 500; }
+  .food-list-item .body .meta { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+
+  .thumb {
+    width: 48px;
+    height: 48px;
+    border-radius: 8px;
+    object-fit: cover;
+    background: var(--bg);
+    flex-shrink: 0;
+  }
+  .thumb-sm {
+    width: 36px;
+    height: 36px;
+    border-radius: 6px;
+    object-fit: cover;
+    background: var(--bg);
+    flex-shrink: 0;
+  }
+  .thumb-placeholder {
+    background: var(--bg);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text-dim);
+    font-size: 20px;
+  }
 
   .info-text { font-size: 12px; color: var(--text-dim); margin-top: 4px; }
 
@@ -268,6 +299,111 @@
   .delta-negative { color: var(--danger); }
 
   hr { border: none; border-top: 1px solid var(--border); margin: 12px 0; }
+
+  /* Tabs (Food DB <-> My Recipes) */
+  .tabs {
+    display: flex;
+    gap: 4px;
+    background: var(--panel-2);
+    border-radius: 8px;
+    padding: 4px;
+    margin-bottom: 12px;
+  }
+  .tabs button {
+    flex: 1;
+    background: transparent;
+    color: var(--text-dim);
+    padding: 8px;
+    border-radius: 6px;
+    font-size: 13px;
+    border: none;
+  }
+  .tabs button.active {
+    background: var(--accent);
+    color: #001019;
+  }
+
+  /* Image upload */
+  .image-upload {
+    width: 100%;
+    height: 120px;
+    border: 2px dashed var(--border);
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-dim);
+    cursor: pointer;
+    background: var(--panel-2);
+    margin-bottom: 8px;
+    overflow: hidden;
+    position: relative;
+  }
+  .image-upload img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .image-upload .remove {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    background: rgba(0,0,0,0.6);
+    color: white;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    cursor: pointer;
+  }
+
+  /* Searchable picker list */
+  .picker-list {
+    max-height: 280px;
+    overflow-y: auto;
+    background: var(--panel-2);
+    border-radius: 8px;
+    padding: 4px;
+    margin-bottom: 12px;
+  }
+  .picker-item {
+    padding: 8px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .picker-item:active, .picker-item.selected { background: var(--accent); color: #001019; }
+  .picker-item.selected .meta { color: rgba(0,0,0,0.7); }
+  .picker-item .name { font-size: 14px; font-weight: 500; }
+  .picker-item .meta { font-size: 11px; color: var(--text-dim); }
+  .picker-item .body { flex: 1; min-width: 0; }
+
+  .ingredient-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    background: var(--panel-2);
+    border-radius: 8px;
+    margin-bottom: 6px;
+  }
+  .ingredient-row .name { flex: 1; font-size: 14px; }
+  .ingredient-row input { width: 80px; padding: 6px 8px; font-size: 13px; }
+
+  .recipe-summary {
+    background: var(--panel-2);
+    border-radius: 8px;
+    padding: 10px;
+    font-size: 13px;
+    line-height: 1.6;
+    margin-top: 8px;
+  }
 </style>
 </head>
 <body>
@@ -338,7 +474,7 @@
         </div>
         <div class="form-group">
           <label>体重 (kg)</label>
-          <input type="number" step="0.05" id="weight-input" placeholder="例: 65.50">
+          <input type="number" step="0.05" id="weight-input" placeholder="例: 65.50" inputmode="decimal">
         </div>
         <button class="full" onclick="addWeight()">記録する</button>
       </div>
@@ -371,7 +507,7 @@
         <div class="chart-container"><canvas id="chart-weight"></canvas></div>
       </div>
       <div class="card">
-        <h2>カロリー摂取推移 (7日)</h2>
+        <h2>カロリー摂取推移 (14日)</h2>
         <div class="chart-container"><canvas id="chart-calorie"></canvas></div>
       </div>
       <div class="card">
@@ -386,16 +522,34 @@
 
     <!-- =================== FOODS VIEW =================== -->
     <section class="view" id="view-foods">
-      <div class="card">
-        <h2>食品データベース</h2>
-        <div class="search-bar">
-          <input type="text" id="food-search" placeholder="食品を検索..." oninput="renderFoodDatabase()">
+      <div class="tabs">
+        <button id="tab-foods" class="active" onclick="switchFoodTab('foods')">食品</button>
+        <button id="tab-recipes" onclick="switchFoodTab('recipes')">マイレシピ</button>
+      </div>
+
+      <div id="subview-foods">
+        <div class="card">
+          <h2>食品データベース</h2>
+          <div class="search-bar">
+            <input type="text" id="food-search" placeholder="食品を検索..." oninput="renderFoodDatabase()">
+          </div>
+          <div class="row" style="gap:8px;margin-bottom:12px;">
+            <button class="full" onclick="openFoodModal()">＋ 新規追加</button>
+            <button class="full secondary" onclick="openBarcodeModal()">📷 バーコード</button>
+          </div>
+          <div id="food-database"></div>
         </div>
-        <div class="row" style="gap:8px;margin-bottom:12px;">
-          <button class="full" onclick="openFoodModal()">＋ 新規追加</button>
-          <button class="full secondary" onclick="openBarcodeModal()">📷 バーコード</button>
+      </div>
+
+      <div id="subview-recipes" style="display:none;">
+        <div class="card">
+          <h2>マイレシピ</h2>
+          <div class="search-bar">
+            <input type="text" id="recipe-search" placeholder="レシピを検索..." oninput="renderRecipes()">
+          </div>
+          <button class="full" style="margin-bottom:12px;" onclick="openRecipeModal()">＋ 新規レシピを作成</button>
+          <div id="recipe-list"></div>
         </div>
-        <div id="food-database"></div>
       </div>
     </section>
 
@@ -413,11 +567,11 @@
         <div class="form-row">
           <div class="form-group">
             <label>年齢</label>
-            <input type="number" id="set-age" placeholder="30">
+            <input type="number" id="set-age" placeholder="30" inputmode="numeric">
           </div>
           <div class="form-group">
             <label>身長 (cm)</label>
-            <input type="number" step="0.1" id="set-height" placeholder="170">
+            <input type="number" step="0.1" id="set-height" placeholder="170" inputmode="decimal">
           </div>
         </div>
         <div class="form-group">
@@ -445,7 +599,7 @@
         <div class="form-row">
           <div class="form-group">
             <label>目標体重 (kg)</label>
-            <input type="number" step="0.1" id="set-target-weight" placeholder="例: 60">
+            <input type="number" step="0.1" id="set-target-weight" placeholder="例: 60" inputmode="decimal">
           </div>
           <div class="form-group">
             <label>達成日</label>
@@ -467,15 +621,15 @@
         <div class="form-row" id="macro-manual" style="display:none;">
           <div class="form-group">
             <label>タンパク質 (g)</label>
-            <input type="number" id="set-p" placeholder="120">
+            <input type="number" id="set-p" placeholder="120" inputmode="numeric">
           </div>
           <div class="form-group">
             <label>脂質 (g)</label>
-            <input type="number" id="set-f" placeholder="60">
+            <input type="number" id="set-f" placeholder="60" inputmode="numeric">
           </div>
           <div class="form-group" style="grid-column:span 2;">
             <label>炭水化物 (g)</label>
-            <input type="number" id="set-c" placeholder="250">
+            <input type="number" id="set-c" placeholder="250" inputmode="numeric">
           </div>
         </div>
       </div>
@@ -514,64 +668,81 @@
   </nav>
 </div>
 
-<!-- =================== MODAL: Add food entry =================== -->
+<!-- =================== MODAL: Add food entry (with search) =================== -->
 <div class="modal-overlay" id="modal-add-entry">
   <div class="modal">
     <h2>食事に追加</h2>
-    <div class="form-group">
-      <label>食品を選択</label>
-      <select id="entry-food-select"></select>
+    <div class="tabs">
+      <button id="entry-tab-foods" class="active" onclick="switchEntryTab('foods')">食品</button>
+      <button id="entry-tab-recipes" onclick="switchEntryTab('recipes')">レシピ</button>
     </div>
     <div class="form-group">
-      <label>分量 (g) <span id="entry-serving-hint" class="info-text"></span></label>
-      <input type="number" step="1" id="entry-amount" placeholder="100" oninput="updateEntryPreview()">
+      <input type="text" id="entry-search" placeholder="検索..." oninput="renderEntryPicker()">
     </div>
-    <div class="form-group">
-      <label>食事区分</label>
-      <select id="entry-meal">
-        <option value="breakfast">朝食</option>
-        <option value="lunch">昼食</option>
-        <option value="dinner">夕食</option>
-        <option value="snack">間食</option>
-      </select>
+    <div class="picker-list" id="entry-picker"></div>
+
+    <div id="entry-amount-block" style="display:none;">
+      <div class="form-group">
+        <label id="entry-amount-label">分量 (g) <span id="entry-serving-hint" class="info-text"></span></label>
+        <input type="number" step="any" id="entry-amount" placeholder="100" oninput="updateEntryPreview()" inputmode="decimal">
+      </div>
+      <div class="form-group">
+        <label>食事区分</label>
+        <select id="entry-meal">
+          <option value="breakfast">朝食</option>
+          <option value="lunch">昼食</option>
+          <option value="dinner">夕食</option>
+          <option value="snack">間食</option>
+        </select>
+      </div>
+      <div class="tdee-info" id="entry-preview">—</div>
     </div>
-    <div class="tdee-info" id="entry-preview">—</div>
+
     <div class="actions">
       <button class="secondary" onclick="closeModal('modal-add-entry')">キャンセル</button>
-      <button onclick="saveEntry()">追加</button>
+      <button id="entry-save-btn" onclick="saveEntry()" disabled>追加</button>
     </div>
   </div>
 </div>
 
-<!-- =================== MODAL: Add food to DB =================== -->
+<!-- =================== MODAL: Add/Edit food to DB =================== -->
 <div class="modal-overlay" id="modal-add-food">
   <div class="modal">
-    <h2>食品を登録</h2>
+    <h2 id="food-modal-title">食品を登録</h2>
+
+    <div class="form-group">
+      <label>画像 (任意)</label>
+      <input type="file" id="food-image-input" accept="image/*" style="display:none" onchange="onFoodImageSelected(event)">
+      <div class="image-upload" id="food-image-area" onclick="document.getElementById('food-image-input').click()">
+        <div id="food-image-placeholder">📷 タップして画像を選択</div>
+      </div>
+    </div>
+
     <div class="form-group">
       <label>食品名</label>
       <input type="text" id="food-name" placeholder="例: 鶏むね肉(皮なし)">
     </div>
     <div class="form-group">
       <label>1食分の量 (g)</label>
-      <input type="number" id="food-serving" placeholder="100" value="100">
+      <input type="number" id="food-serving" placeholder="100" value="100" inputmode="decimal">
     </div>
     <div class="info-text" style="margin-bottom:8px;">以下は「1食分の量」あたりの栄養素</div>
     <div class="form-row">
       <div class="form-group">
         <label>カロリー (kcal)</label>
-        <input type="number" step="0.1" id="food-kcal" placeholder="165">
+        <input type="number" step="0.1" id="food-kcal" placeholder="165" inputmode="decimal">
       </div>
       <div class="form-group">
         <label>タンパク質 (g)</label>
-        <input type="number" step="0.1" id="food-p" placeholder="31">
+        <input type="number" step="0.1" id="food-p" placeholder="31" inputmode="decimal">
       </div>
       <div class="form-group">
         <label>脂質 (g)</label>
-        <input type="number" step="0.1" id="food-f" placeholder="3.6">
+        <input type="number" step="0.1" id="food-f" placeholder="3.6" inputmode="decimal">
       </div>
       <div class="form-group">
         <label>炭水化物 (g)</label>
-        <input type="number" step="0.1" id="food-c" placeholder="0">
+        <input type="number" step="0.1" id="food-c" placeholder="0" inputmode="decimal">
       </div>
     </div>
     <div class="form-group">
@@ -602,10 +773,75 @@
   </div>
 </div>
 
+<!-- =================== MODAL: Recipe create/edit =================== -->
+<div class="modal-overlay" id="modal-recipe">
+  <div class="modal">
+    <h2 id="recipe-modal-title">レシピを作成</h2>
+
+    <div class="form-group">
+      <label>画像 (任意)</label>
+      <input type="file" id="recipe-image-input" accept="image/*" style="display:none" onchange="onRecipeImageSelected(event)">
+      <div class="image-upload" id="recipe-image-area" onclick="document.getElementById('recipe-image-input').click()">
+        <div id="recipe-image-placeholder">📷 タップして画像を選択</div>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>レシピ名</label>
+      <input type="text" id="recipe-name" placeholder="例: 鶏むね丼">
+    </div>
+    <div class="form-group">
+      <label>このレシピで作れる人前 (servings)</label>
+      <input type="number" step="0.5" id="recipe-servings" value="1" inputmode="decimal">
+    </div>
+
+    <hr>
+    <div class="row between" style="margin-bottom:8px;">
+      <strong style="font-size:13px;">食材リスト</strong>
+      <button class="small" onclick="openIngredientPicker()">＋ 食材追加</button>
+    </div>
+    <div id="recipe-ingredients"></div>
+
+    <div class="recipe-summary" id="recipe-summary">食材を追加してください</div>
+
+    <div class="actions">
+      <button class="secondary" onclick="closeModal('modal-recipe')">キャンセル</button>
+      <button onclick="saveRecipe()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- =================== MODAL: Ingredient picker (for recipe) =================== -->
+<div class="modal-overlay" id="modal-ingredient-picker">
+  <div class="modal">
+    <h2>食材を追加</h2>
+    <div class="form-group">
+      <input type="text" id="ingredient-search" placeholder="食品を検索..." oninput="renderIngredientPicker()">
+    </div>
+    <div class="picker-list" id="ingredient-picker-list"></div>
+    <div id="ingredient-amount-block" style="display:none;">
+      <div class="form-group">
+        <label>分量 (g) <span id="ingredient-serving-hint" class="info-text"></span></label>
+        <input type="number" step="any" id="ingredient-amount" inputmode="decimal">
+      </div>
+    </div>
+    <div class="actions">
+      <button class="secondary" onclick="closeModal('modal-ingredient-picker')">キャンセル</button>
+      <button id="ingredient-add-btn" onclick="addIngredientToRecipe()" disabled>追加</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // =====================================================================
-// MyMacro - Adaptive food/macro tracker (prototype)
+// MyMacro v2 - Adaptive food/macro tracker (prototype)
 // Storage: localStorage (key: mymacro_v1)
+// New features:
+//   - Editable foods, custom serving size kept per food
+//   - Food images (compressed)
+//   - Searchable food picker
+//   - My Recipes (composed of foods)
+//   - Weight paste helper (Health app interop)
 // =====================================================================
 
 const STORAGE_KEY = 'mymacro_v1';
@@ -614,6 +850,14 @@ const STORAGE_KEY = 'mymacro_v1';
 let state = loadState();
 let currentDate = todayStr();
 let charts = {};
+
+// Modal state
+let entryTab = 'foods';            // 'foods' or 'recipes'
+let entrySelected = null;          // {type:'food'|'recipe', id}
+let foodEditingId = null;          // null = new
+let recipeEditingId = null;        // null = new
+let recipeDraft = null;            // { name, image, servings, ingredients:[{foodId, amount}] }
+let pendingIngredient = null;      // food chosen in picker, awaiting amount
 
 function defaultState() {
   return {
@@ -628,8 +872,8 @@ function defaultState() {
       macroMode: 'auto',
       manualP: 120, manualF: 60, manualC: 250,
     },
-    weights: {},  // { 'YYYY-MM-DD': 65.5 }
-    entries: {},  // { 'YYYY-MM-DD': [ {foodId, amount, meal} ] }
+    weights: {},
+    entries: {},
     foods: [
       { id: '_default_1', name: '鶏むね肉(皮なし・生)', serving: 100, kcal: 105, p: 23.3, f: 1.9, c: 0 },
       { id: '_default_2', name: '白米(炊いた)', serving: 150, kcal: 234, p: 3.8, f: 0.5, c: 55.7 },
@@ -640,9 +884,10 @@ function defaultState() {
       { id: '_default_7', name: 'バナナ(中)', serving: 100, kcal: 86, p: 1.1, f: 0.2, c: 22.5 },
       { id: '_default_8', name: 'オートミール(乾)', serving: 40, kcal: 152, p: 5.5, f: 2.3, c: 27.6 },
     ],
+    recipes: [],
     tdee: null,
-    tdeeMethod: 'estimate', // 'estimate' | 'calculated'
-    tdeeHistory: [], // { date, tdee }
+    tdeeMethod: 'estimate',
+    tdeeHistory: [],
   };
 }
 
@@ -651,11 +896,11 @@ function loadState() {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return defaultState();
     const parsed = JSON.parse(raw);
-    // merge with defaults to be safe
     const def = defaultState();
     return { ...def, ...parsed,
       settings: { ...def.settings, ...(parsed.settings || {}) },
       foods: parsed.foods && parsed.foods.length ? parsed.foods : def.foods,
+      recipes: parsed.recipes || [],
     };
   } catch (e) {
     console.error('loadState error', e);
@@ -664,7 +909,11 @@ function loadState() {
 }
 
 function saveState() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch (e) {
+    alert('保存に失敗しました。ストレージが上限の可能性があります。古い画像を削除するか、データをエクスポートしてください。');
+  }
 }
 
 // ---------- Helpers ----------
@@ -679,7 +928,36 @@ function fmtDate(s) {
 }
 function clamp(n, a, b) { return Math.max(a, Math.min(b, n)); }
 function round1(n) { return Math.round(n * 10) / 10; }
-function uid() { return 'f_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7); }
+function uid(prefix='f') { return prefix + '_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7); }
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function findFood(id) { return state.foods.find(f => f.id === id); }
+function findRecipe(id) { return state.recipes.find(r => r.id === id); }
+
+// Recipe nutrition (per recipe total)
+function recipeNutrition(recipe) {
+  let kcal = 0, p = 0, f = 0, c = 0;
+  for (const ing of recipe.ingredients || []) {
+    const food = findFood(ing.foodId);
+    if (!food) continue;
+    const factor = ing.amount / food.serving;
+    kcal += food.kcal * factor;
+    p += food.p * factor;
+    f += food.f * factor;
+    c += food.c * factor;
+  }
+  return { kcal, p, f, c };
+}
+
+// Recipe nutrition per serving
+function recipePerServing(recipe) {
+  const n = recipeNutrition(recipe);
+  const s = recipe.servings || 1;
+  return { kcal: n.kcal/s, p: n.p/s, f: n.f/s, c: n.c/s };
+}
 
 // ---------- Mifflin-St Jeor BMR ----------
 function bmrMSJ(weight, height, age, sex) {
@@ -694,7 +972,6 @@ function latestWeight() {
 }
 
 function weightAvg(days = 7, endDate = currentDate) {
-  // moving average around endDate looking back `days` days
   const end = new Date(endDate);
   const vals = [];
   for (let i = 0; i < days; i++) {
@@ -708,30 +985,21 @@ function weightAvg(days = 7, endDate = currentDate) {
 }
 
 // ---------- Adaptive TDEE ----------
-// Approach (MacroFactor-inspired):
-//   For each pair of weight-average measurements separated by N>=7 days,
-//   compute the implied TDEE:
-//       implied = avg_intake + (delta_weight_kg * 7700 / N)
-//   where 7700 kcal ≈ 1 kg of body mass change.
-//   We weight recent windows more heavily (exponential decay).
 function computeAdaptiveTDEE() {
   const dates = Object.keys(state.weights).sort();
   if (dates.length < 2) {
-    // Fallback: Mifflin-St Jeor × activity
     const w = latestWeight();
     if (!w) return { tdee: null, method: 'none' };
     const bmr = bmrMSJ(w, state.settings.height, state.settings.age, state.settings.sex);
     return { tdee: Math.round(bmr * state.settings.activity), method: 'estimate' };
   }
 
-  // Generate 7-day weight averages
-  const series = []; // { date, avg }
+  const series = [];
   for (const d of dates) {
     const a = weightAvg(7, d);
     if (a != null) series.push({ date: d, avg: a });
   }
 
-  // Use pairs separated by >= 7 days
   const samples = [];
   const minWindow = 7;
   for (let i = 0; i < series.length; i++) {
@@ -740,16 +1008,13 @@ function computeAdaptiveTDEE() {
       const dB = new Date(series[j].date);
       const days = (dB - dA) / 86400000;
       if (days < minWindow) continue;
-      // Avg intake during window
       const intake = avgIntakeBetween(series[i].date, series[j].date);
       if (intake == null) continue;
       const deltaWeight = series[j].avg - series[i].avg;
       const implied = intake + (deltaWeight * 7700 / days);
-      // Sanity bounds
       if (implied < 800 || implied > 6000) continue;
-      // Weight: exponential by recency of end date
       const ageDays = (new Date() - dB) / 86400000;
-      const w = Math.exp(-ageDays / 30); // half-weight ~20d
+      const w = Math.exp(-ageDays / 30);
       samples.push({ implied, w, days });
     }
   }
@@ -768,7 +1033,6 @@ function computeAdaptiveTDEE() {
 }
 
 function avgIntakeBetween(startDate, endDate) {
-  // Average daily intake of logged days strictly within (startDate, endDate]
   const start = new Date(startDate);
   const end = new Date(endDate);
   const vals = [];
@@ -778,7 +1042,7 @@ function avgIntakeBetween(startDate, endDate) {
       vals.push(dayTotals(k).kcal);
     }
   }
-  if (vals.length < 3) return null; // need a few datapoints
+  if (vals.length < 3) return null;
   return vals.reduce((a, b) => a + b, 0) / vals.length;
 }
 
@@ -787,7 +1051,6 @@ function calorieTarget() {
   const t = computeAdaptiveTDEE();
   if (!t.tdee) return null;
   let target = t.tdee;
-  // adjust by goal & rate
   const s = state.settings;
   if (s.goal === 'maintain') return target;
   if (s.targetWeight && s.targetDate) {
@@ -795,14 +1058,12 @@ function calorieTarget() {
     if (w) {
       const daysLeft = Math.max(7, (new Date(s.targetDate) - new Date()) / 86400000);
       const deltaKg = s.targetWeight - w;
-      const dailyDelta = (deltaKg * 7700) / daysLeft; // kcal/day to add or subtract
+      const dailyDelta = (deltaKg * 7700) / daysLeft;
       target = t.tdee + dailyDelta;
-      // safety
       const bmr = bmrMSJ(w, s.height, s.age, s.sex);
       target = clamp(target, bmr * 1.0, t.tdee + 1200);
     }
   } else {
-    // sensible default if no target set
     if (s.goal === 'cut') target = t.tdee - 400;
     if (s.goal === 'bulk') target = t.tdee + 300;
   }
@@ -816,26 +1077,48 @@ function macroTargets() {
     return { p: +s.manualP || 0, f: +s.manualF || 0, c: +s.manualC || 0, kcal };
   }
   const w = latestWeight() || 70;
-  const p = Math.round(w * 2);             // P: 2g/kg
-  const fKcal = kcal * 0.25;               // F: 25% of total kcal
+  const p = Math.round(w * 2);
+  const fKcal = kcal * 0.25;
   const f = Math.round(fKcal / 9);
   const remainingKcal = kcal - p * 4 - f * 9;
   const c = Math.max(0, Math.round(remainingKcal / 4));
   return { p, f, c, kcal };
 }
 
-// ---------- Day totals ----------
+// ---------- Day totals (handles both food and recipe entries) ----------
+function entryNutrition(entry) {
+  if (entry.type === 'recipe') {
+    const rec = findRecipe(entry.recipeId);
+    if (!rec) return { kcal: 0, p: 0, f: 0, c: 0 };
+    const per = recipePerServing(rec);
+    const s = entry.servings || 1;
+    return { kcal: per.kcal * s, p: per.p * s, f: per.f * s, c: per.c * s };
+  } else {
+    const food = findFood(entry.foodId);
+    if (!food) return { kcal: 0, p: 0, f: 0, c: 0 };
+    const factor = entry.amount / food.serving;
+    return { kcal: food.kcal * factor, p: food.p * factor, f: food.f * factor, c: food.c * factor };
+  }
+}
+
+function entryDisplay(entry) {
+  if (entry.type === 'recipe') {
+    const rec = findRecipe(entry.recipeId);
+    if (!rec) return { name: '(削除済みレシピ)', amount: '', image: null };
+    return { name: rec.name, amount: `${entry.servings || 1}人前`, image: rec.image };
+  } else {
+    const food = findFood(entry.foodId);
+    if (!food) return { name: '(削除済み食品)', amount: '', image: null };
+    return { name: food.name, amount: `${entry.amount}g`, image: food.image };
+  }
+}
+
 function dayTotals(date) {
   const arr = state.entries[date] || [];
   let kcal = 0, p = 0, f = 0, c = 0;
   for (const e of arr) {
-    const food = state.foods.find(x => x.id === e.foodId);
-    if (!food) continue;
-    const factor = e.amount / food.serving;
-    kcal += food.kcal * factor;
-    p += food.p * factor;
-    f += food.f * factor;
-    c += food.c * factor;
+    const n = entryNutrition(e);
+    kcal += n.kcal; p += n.p; f += n.f; c += n.c;
   }
   return { kcal: Math.round(kcal), p: round1(p), f: round1(f), c: round1(c) };
 }
@@ -848,16 +1131,15 @@ function switchView(name) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.getElementById('view-' + name).classList.add('active');
   document.querySelectorAll('.nav-item').forEach(b => b.classList.toggle('active', b.dataset.view === name));
-  // refresh
   if (name === 'today') renderToday();
   if (name === 'weight') renderWeight();
   if (name === 'stats') renderStats();
-  if (name === 'foods') renderFoodDatabase();
+  if (name === 'foods') { renderFoodDatabase(); renderRecipes(); }
   if (name === 'settings') loadSettingsForm();
-  // update header
-  const titles = {today:'今日', weight:'体重 & TDEE', stats:'分析', foods:'食品DB', settings:'設定'};
+  const titles = {today:'今日', weight:'体重 & TDEE', stats:'分析', foods:'食品 & レシピ', settings:'設定'};
   document.getElementById('header-title').textContent = 'MyMacro';
   document.getElementById('header-sub').textContent = titles[name] || '';
+  window.scrollTo(0, 0);
 }
 
 function changeDay(delta) {
@@ -885,33 +1167,35 @@ function renderToday() {
   document.getElementById('f-bar').style.width = clamp(t.f / tgt.f * 100, 0, 100) + '%';
   document.getElementById('c-bar').style.width = clamp(t.c / tgt.c * 100, 0, 100) + '%';
 
-  // Meals
   const meals = ['breakfast', 'lunch', 'dinner', 'snack'];
   const labels = { breakfast: '朝食', lunch: '昼食', dinner: '夕食', snack: '間食' };
   const container = document.getElementById('meals-container');
   container.innerHTML = '';
   const entries = state.entries[currentDate] || [];
   meals.forEach(m => {
-    const mealEntries = entries.filter(e => e.meal === m);
+    const mealEntries = entries
+      .map((e, idx) => ({ e, idx }))
+      .filter(x => x.e.meal === m);
     let html = `<div class="meal-section"><div class="meal-title"><span>${labels[m]}</span>
       <button class="ghost meal-add" onclick="openEntryModal('${m}')">＋</button></div>`;
     if (!mealEntries.length) {
       html += '<div class="empty" style="padding:8px;">記録なし</div>';
     } else {
-      mealEntries.forEach((e, idx) => {
-        const food = state.foods.find(x => x.id === e.foodId);
-        if (!food) return;
-        const factor = e.amount / food.serving;
-        const kcal = Math.round(food.kcal * factor);
-        const idxAll = entries.indexOf(e);
+      mealEntries.forEach(({ e, idx }) => {
+        const n = entryNutrition(e);
+        const d = entryDisplay(e);
+        const thumb = d.image
+          ? `<img src="${d.image}" class="thumb-sm">`
+          : `<div class="thumb-sm thumb-placeholder">${e.type === 'recipe' ? '📖' : '🍽'}</div>`;
         html += `<div class="food-item">
-          <div>
-            <div class="name">${escapeHtml(food.name)}</div>
-            <div class="meta">${e.amount}g ・ P${round1(food.p*factor)} F${round1(food.f*factor)} C${round1(food.c*factor)}</div>
+          ${thumb}
+          <div style="flex:1;min-width:0;">
+            <div class="name">${escapeHtml(d.name)}${e.type === 'recipe' ? ' <span class="badge calc">レシピ</span>' : ''}</div>
+            <div class="meta">${d.amount} ・ P${round1(n.p)} F${round1(n.f)} C${round1(n.c)}</div>
           </div>
           <div style="text-align:right;">
-            <div class="kcal">${kcal} kcal</div>
-            <button class="small ghost" onclick="deleteEntry('${currentDate}', ${idxAll})">削除</button>
+            <div class="kcal">${Math.round(n.kcal)} kcal</div>
+            <button class="small ghost" onclick="deleteEntry('${currentDate}', ${idx})">削除</button>
           </div>
         </div>`;
       });
@@ -939,7 +1223,6 @@ function renderWeight() {
     info.textContent = '体重と食事の記録を始めましょう。';
   }
 
-  // history
   const dates = Object.keys(state.weights).sort().reverse().slice(0, 30);
   const hist = document.getElementById('weight-history');
   if (!dates.length) {
@@ -948,7 +1231,7 @@ function renderWeight() {
     hist.innerHTML = dates.map(d => {
       const v = state.weights[d];
       return `<div class="food-item">
-        <div><div class="name">${fmtDate(d)}</div></div>
+        <div style="flex:1"><div class="name">${fmtDate(d)}</div></div>
         <div style="text-align:right;">
           <div class="kcal">${v} kg</div>
           <button class="small ghost" onclick="deleteWeight('${d}')">削除</button>
@@ -975,7 +1258,16 @@ function deleteWeight(d) {
   renderWeight();
 }
 
-// ---------- Food DB ----------
+// ---------- Food DB Tab ----------
+function switchFoodTab(name) {
+  document.getElementById('tab-foods').classList.toggle('active', name === 'foods');
+  document.getElementById('tab-recipes').classList.toggle('active', name === 'recipes');
+  document.getElementById('subview-foods').style.display = name === 'foods' ? 'block' : 'none';
+  document.getElementById('subview-recipes').style.display = name === 'recipes' ? 'block' : 'none';
+  if (name === 'foods') renderFoodDatabase();
+  if (name === 'recipes') renderRecipes();
+}
+
 function renderFoodDatabase() {
   const q = (document.getElementById('food-search').value || '').toLowerCase();
   const list = state.foods.filter(f => !q || f.name.toLowerCase().includes(q) || (f.barcode || '').includes(q));
@@ -984,41 +1276,88 @@ function renderFoodDatabase() {
     el.innerHTML = '<div class="empty">該当なし</div>';
     return;
   }
-  el.innerHTML = list.map(f => `
+  el.innerHTML = list.map(f => {
+    const thumb = f.image
+      ? `<img src="${f.image}" class="thumb">`
+      : `<div class="thumb thumb-placeholder">🍽</div>`;
+    return `
     <div class="food-list-item">
-      <div class="row between">
-        <div>
-          <div class="name">${escapeHtml(f.name)}</div>
-          <div class="meta">${f.serving}g あたり: ${Math.round(f.kcal)}kcal / P${f.p} F${f.f} C${f.c}</div>
-        </div>
-        <div>
-          <button class="small" onclick="openEntryModalWithFood('${f.id}')">追加</button>
-          <button class="small ghost" onclick="deleteFood('${f.id}')">×</button>
-        </div>
+      ${thumb}
+      <div class="body">
+        <div class="name">${escapeHtml(f.name)}</div>
+        <div class="meta">${f.serving}g あたり: ${Math.round(f.kcal)}kcal / P${f.p} F${f.f} C${f.c}</div>
       </div>
-    </div>`).join('');
+      <div style="display:flex;flex-direction:column;gap:4px;">
+        <button class="small" onclick="openEntryFromFood('${f.id}')">追加</button>
+        <button class="small secondary" onclick="openFoodModal('${f.id}')">編集</button>
+      </div>
+    </div>`;
+  }).join('');
 }
 
-function openFoodModal() {
-  ['food-name','food-serving','food-kcal','food-p','food-f','food-c','food-barcode'].forEach(id => {
-    document.getElementById(id).value = id === 'food-serving' ? '100' : '';
-  });
+// ---------- Food Modal (add/edit) ----------
+function openFoodModal(id = null) {
+  foodEditingId = id;
+  const title = document.getElementById('food-modal-title');
+  if (id) {
+    const f = findFood(id);
+    if (!f) return;
+    title.textContent = '食品を編集';
+    document.getElementById('food-name').value = f.name;
+    document.getElementById('food-serving').value = f.serving;
+    document.getElementById('food-kcal').value = f.kcal;
+    document.getElementById('food-p').value = f.p;
+    document.getElementById('food-f').value = f.f;
+    document.getElementById('food-c').value = f.c;
+    document.getElementById('food-barcode').value = f.barcode || '';
+    showFoodImagePreview(f.image || null);
+  } else {
+    title.textContent = '食品を登録';
+    ['food-name','food-kcal','food-p','food-f','food-c','food-barcode'].forEach(k => document.getElementById(k).value = '');
+    document.getElementById('food-serving').value = '100';
+    showFoodImagePreview(null);
+  }
   document.getElementById('modal-add-food').classList.add('active');
 }
 
+let foodImageData = null;
+function showFoodImagePreview(dataURL) {
+  foodImageData = dataURL;
+  const area = document.getElementById('food-image-area');
+  if (dataURL) {
+    area.innerHTML = `<img src="${dataURL}"><div class="remove" onclick="event.stopPropagation();showFoodImagePreview(null)">×</div>`;
+  } else {
+    area.innerHTML = `<div id="food-image-placeholder">📷 タップして画像を選択</div>`;
+  }
+}
+
+async function onFoodImageSelected(ev) {
+  const file = ev.target.files[0];
+  if (!file) return;
+  const dataURL = await compressImage(file);
+  showFoodImagePreview(dataURL);
+  ev.target.value = '';
+}
+
 function saveFood() {
-  const food = {
-    id: uid(),
-    name: document.getElementById('food-name').value.trim(),
+  const name = document.getElementById('food-name').value.trim();
+  if (!name) { alert('食品名を入力してください'); return; }
+  const data = {
+    name,
     serving: parseFloat(document.getElementById('food-serving').value) || 100,
     kcal: parseFloat(document.getElementById('food-kcal').value) || 0,
     p: parseFloat(document.getElementById('food-p').value) || 0,
     f: parseFloat(document.getElementById('food-f').value) || 0,
     c: parseFloat(document.getElementById('food-c').value) || 0,
     barcode: document.getElementById('food-barcode').value.trim() || null,
+    image: foodImageData,
   };
-  if (!food.name) { alert('食品名を入力してください'); return; }
-  state.foods.push(food);
+  if (foodEditingId) {
+    const idx = state.foods.findIndex(f => f.id === foodEditingId);
+    if (idx >= 0) state.foods[idx] = { ...state.foods[idx], ...data };
+  } else {
+    state.foods.push({ id: uid('f'), ...data });
+  }
   saveState();
   closeModal('modal-add-food');
   renderFoodDatabase();
@@ -1031,46 +1370,145 @@ function deleteFood(id) {
   renderFoodDatabase();
 }
 
-// ---------- Entry modal ----------
-let entryMealSelected = 'breakfast';
+// ---------- Image compression ----------
+function compressImage(file, maxSize = 400, quality = 0.7) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let { width, height } = img;
+        if (width > height) {
+          if (width > maxSize) { height *= maxSize / width; width = maxSize; }
+        } else {
+          if (height > maxSize) { width *= maxSize / height; height = maxSize; }
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = reject;
+      img.src = e.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+// ---------- Entry modal with searchable picker ----------
 function openEntryModal(meal) {
-  entryMealSelected = meal || 'breakfast';
-  const sel = document.getElementById('entry-food-select');
-  sel.innerHTML = state.foods.map(f => `<option value="${f.id}">${escapeHtml(f.name)} (${f.serving}g/${Math.round(f.kcal)}kcal)</option>`).join('');
-  document.getElementById('entry-amount').value = state.foods[0] ? state.foods[0].serving : 100;
-  document.getElementById('entry-meal').value = entryMealSelected;
-  sel.onchange = updateEntryPreview;
-  updateEntryPreview();
+  document.getElementById('entry-meal').value = meal || 'breakfast';
+  document.getElementById('entry-search').value = '';
+  entrySelected = null;
+  entryTab = 'foods';
+  switchEntryTab('foods');
+  document.getElementById('entry-amount-block').style.display = 'none';
+  document.getElementById('entry-save-btn').disabled = true;
   document.getElementById('modal-add-entry').classList.add('active');
 }
 
-function openEntryModalWithFood(foodId) {
+function openEntryFromFood(foodId) {
   switchView('today');
   openEntryModal('breakfast');
-  document.getElementById('entry-food-select').value = foodId;
-  const f = state.foods.find(x => x.id === foodId);
-  if (f) document.getElementById('entry-amount').value = f.serving;
+  selectEntryItem('food', foodId);
+}
+
+function switchEntryTab(name) {
+  entryTab = name;
+  document.getElementById('entry-tab-foods').classList.toggle('active', name === 'foods');
+  document.getElementById('entry-tab-recipes').classList.toggle('active', name === 'recipes');
+  document.getElementById('entry-search').value = '';
+  entrySelected = null;
+  document.getElementById('entry-amount-block').style.display = 'none';
+  document.getElementById('entry-save-btn').disabled = true;
+  renderEntryPicker();
+}
+
+function renderEntryPicker() {
+  const q = (document.getElementById('entry-search').value || '').toLowerCase();
+  const list = document.getElementById('entry-picker');
+  let items;
+  if (entryTab === 'foods') {
+    items = state.foods.filter(f => !q || f.name.toLowerCase().includes(q));
+    if (!items.length) { list.innerHTML = '<div class="empty">該当なし</div>'; return; }
+    list.innerHTML = items.map(f => {
+      const thumb = f.image
+        ? `<img src="${f.image}" class="thumb-sm">`
+        : `<div class="thumb-sm thumb-placeholder">🍽</div>`;
+      const sel = entrySelected && entrySelected.type === 'food' && entrySelected.id === f.id;
+      return `<div class="picker-item ${sel ? 'selected' : ''}" onclick="selectEntryItem('food', '${f.id}')">
+        ${thumb}
+        <div class="body">
+          <div class="name">${escapeHtml(f.name)}</div>
+          <div class="meta">${f.serving}g / ${Math.round(f.kcal)}kcal</div>
+        </div>
+      </div>`;
+    }).join('');
+  } else {
+    items = state.recipes.filter(r => !q || r.name.toLowerCase().includes(q));
+    if (!items.length) { list.innerHTML = '<div class="empty">レシピがありません。<br>「食品」タブの右の「マイレシピ」タブから作成できます。</div>'; return; }
+    list.innerHTML = items.map(r => {
+      const per = recipePerServing(r);
+      const thumb = r.image
+        ? `<img src="${r.image}" class="thumb-sm">`
+        : `<div class="thumb-sm thumb-placeholder">📖</div>`;
+      const sel = entrySelected && entrySelected.type === 'recipe' && entrySelected.id === r.id;
+      return `<div class="picker-item ${sel ? 'selected' : ''}" onclick="selectEntryItem('recipe', '${r.id}')">
+        ${thumb}
+        <div class="body">
+          <div class="name">${escapeHtml(r.name)}</div>
+          <div class="meta">1人前: ${Math.round(per.kcal)}kcal (全${r.servings}人前)</div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+}
+
+function selectEntryItem(type, id) {
+  entrySelected = { type, id };
+  renderEntryPicker();
+  const block = document.getElementById('entry-amount-block');
+  block.style.display = 'block';
+  if (type === 'food') {
+    const f = findFood(id);
+    document.getElementById('entry-amount-label').innerHTML = `分量 (g) <span id="entry-serving-hint" class="info-text">(基準: ${f.serving}g)</span>`;
+    document.getElementById('entry-amount').value = f.serving;  // ★ 基準g を反映
+  } else {
+    const r = findRecipe(id);
+    document.getElementById('entry-amount-label').innerHTML = `分量 (人前) <span id="entry-serving-hint" class="info-text">(全${r.servings}人前)</span>`;
+    document.getElementById('entry-amount').value = 1;
+  }
+  document.getElementById('entry-save-btn').disabled = false;
   updateEntryPreview();
 }
 
 function updateEntryPreview() {
-  const id = document.getElementById('entry-food-select').value;
+  if (!entrySelected) return;
   const amt = parseFloat(document.getElementById('entry-amount').value) || 0;
-  const f = state.foods.find(x => x.id === id);
-  if (!f) return;
-  const factor = amt / f.serving;
-  document.getElementById('entry-serving-hint').textContent = `(基準: ${f.serving}g)`;
+  let n;
+  if (entrySelected.type === 'food') {
+    n = entryNutrition({ type: 'food', foodId: entrySelected.id, amount: amt });
+  } else {
+    n = entryNutrition({ type: 'recipe', recipeId: entrySelected.id, servings: amt });
+  }
   document.getElementById('entry-preview').innerHTML =
-    `合計: <strong>${Math.round(f.kcal * factor)} kcal</strong> ・ P${round1(f.p*factor)} F${round1(f.f*factor)} C${round1(f.c*factor)}`;
+    `合計: <strong>${Math.round(n.kcal)} kcal</strong> ・ P${round1(n.p)} F${round1(n.f)} C${round1(n.c)}`;
 }
 
 function saveEntry() {
-  const id = document.getElementById('entry-food-select').value;
+  if (!entrySelected) return;
   const amt = parseFloat(document.getElementById('entry-amount').value);
   const meal = document.getElementById('entry-meal').value;
-  if (!id || !amt || amt <= 0) { alert('食品と分量を入力してください'); return; }
+  if (!amt || amt <= 0) { alert('分量を入力してください'); return; }
   if (!state.entries[currentDate]) state.entries[currentDate] = [];
-  state.entries[currentDate].push({ foodId: id, amount: amt, meal });
+  if (entrySelected.type === 'food') {
+    state.entries[currentDate].push({ type: 'food', foodId: entrySelected.id, amount: amt, meal });
+  } else {
+    state.entries[currentDate].push({ type: 'recipe', recipeId: entrySelected.id, servings: amt, meal });
+  }
   saveState();
   closeModal('modal-add-entry');
   renderToday();
@@ -1080,6 +1518,205 @@ function deleteEntry(date, idx) {
   state.entries[date].splice(idx, 1);
   saveState();
   renderToday();
+}
+
+// ---------- Recipes ----------
+function renderRecipes() {
+  const q = (document.getElementById('recipe-search').value || '').toLowerCase();
+  const list = state.recipes.filter(r => !q || r.name.toLowerCase().includes(q));
+  const el = document.getElementById('recipe-list');
+  if (!list.length) {
+    el.innerHTML = '<div class="empty">レシピを作成してみましょう</div>';
+    return;
+  }
+  el.innerHTML = list.map(r => {
+    const per = recipePerServing(r);
+    const thumb = r.image
+      ? `<img src="${r.image}" class="thumb">`
+      : `<div class="thumb thumb-placeholder">📖</div>`;
+    return `
+    <div class="food-list-item">
+      ${thumb}
+      <div class="body">
+        <div class="name">${escapeHtml(r.name)}</div>
+        <div class="meta">1人前: ${Math.round(per.kcal)}kcal / P${round1(per.p)} F${round1(per.f)} C${round1(per.c)}</div>
+        <div class="meta">${(r.ingredients || []).length}食材・全${r.servings}人前</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px;">
+        <button class="small secondary" onclick="openRecipeModal('${r.id}')">編集</button>
+        <button class="small ghost" onclick="deleteRecipe('${r.id}')">×</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+let recipeImageData = null;
+function showRecipeImagePreview(dataURL) {
+  recipeImageData = dataURL;
+  const area = document.getElementById('recipe-image-area');
+  if (dataURL) {
+    area.innerHTML = `<img src="${dataURL}"><div class="remove" onclick="event.stopPropagation();showRecipeImagePreview(null)">×</div>`;
+  } else {
+    area.innerHTML = `<div id="recipe-image-placeholder">📷 タップして画像を選択</div>`;
+  }
+}
+
+async function onRecipeImageSelected(ev) {
+  const file = ev.target.files[0];
+  if (!file) return;
+  const dataURL = await compressImage(file);
+  showRecipeImagePreview(dataURL);
+  ev.target.value = '';
+}
+
+function openRecipeModal(id = null) {
+  recipeEditingId = id;
+  if (id) {
+    const r = findRecipe(id);
+    if (!r) return;
+    document.getElementById('recipe-modal-title').textContent = 'レシピを編集';
+    document.getElementById('recipe-name').value = r.name;
+    document.getElementById('recipe-servings').value = r.servings;
+    showRecipeImagePreview(r.image || null);
+    recipeDraft = JSON.parse(JSON.stringify({ ingredients: r.ingredients || [] }));
+  } else {
+    document.getElementById('recipe-modal-title').textContent = 'レシピを作成';
+    document.getElementById('recipe-name').value = '';
+    document.getElementById('recipe-servings').value = 1;
+    showRecipeImagePreview(null);
+    recipeDraft = { ingredients: [] };
+  }
+  renderRecipeIngredients();
+  document.getElementById('modal-recipe').classList.add('active');
+}
+
+function renderRecipeIngredients() {
+  const el = document.getElementById('recipe-ingredients');
+  if (!recipeDraft.ingredients.length) {
+    el.innerHTML = '<div class="empty" style="padding:12px;">食材を追加してください</div>';
+  } else {
+    el.innerHTML = recipeDraft.ingredients.map((ing, idx) => {
+      const f = findFood(ing.foodId);
+      const name = f ? f.name : '(不明)';
+      return `<div class="ingredient-row">
+        <div class="name">${escapeHtml(name)}</div>
+        <input type="number" step="any" value="${ing.amount}" onchange="updateIngredientAmount(${idx}, this.value)" inputmode="decimal">
+        <span style="font-size:11px;color:var(--text-dim);">g</span>
+        <button class="small ghost" onclick="removeIngredient(${idx})">×</button>
+      </div>`;
+    }).join('');
+  }
+  updateRecipeSummary();
+}
+
+function updateIngredientAmount(idx, val) {
+  const v = parseFloat(val);
+  if (v > 0) recipeDraft.ingredients[idx].amount = v;
+  updateRecipeSummary();
+}
+
+function removeIngredient(idx) {
+  recipeDraft.ingredients.splice(idx, 1);
+  renderRecipeIngredients();
+}
+
+function updateRecipeSummary() {
+  const servings = parseFloat(document.getElementById('recipe-servings').value) || 1;
+  const fake = { ingredients: recipeDraft.ingredients, servings };
+  const total = recipeNutrition(fake);
+  const per = recipePerServing(fake);
+  const el = document.getElementById('recipe-summary');
+  if (!recipeDraft.ingredients.length) {
+    el.textContent = '食材を追加してください';
+    return;
+  }
+  el.innerHTML = `
+    <strong>全量:</strong> ${Math.round(total.kcal)}kcal / P${round1(total.p)} F${round1(total.f)} C${round1(total.c)}<br>
+    <strong>1人前:</strong> ${Math.round(per.kcal)}kcal / P${round1(per.p)} F${round1(per.f)} C${round1(per.c)}
+  `;
+}
+
+function saveRecipe() {
+  const name = document.getElementById('recipe-name').value.trim();
+  const servings = parseFloat(document.getElementById('recipe-servings').value) || 1;
+  if (!name) { alert('レシピ名を入力してください'); return; }
+  if (!recipeDraft.ingredients.length) { alert('食材を1つ以上追加してください'); return; }
+  const data = {
+    name,
+    servings,
+    image: recipeImageData,
+    ingredients: recipeDraft.ingredients,
+  };
+  if (recipeEditingId) {
+    const idx = state.recipes.findIndex(r => r.id === recipeEditingId);
+    if (idx >= 0) state.recipes[idx] = { ...state.recipes[idx], ...data };
+  } else {
+    state.recipes.push({ id: uid('r'), ...data });
+  }
+  saveState();
+  closeModal('modal-recipe');
+  renderRecipes();
+}
+
+function deleteRecipe(id) {
+  if (!confirm('このレシピを削除しますか？')) return;
+  state.recipes = state.recipes.filter(r => r.id !== id);
+  saveState();
+  renderRecipes();
+}
+
+// recipe-servings change should update summary
+document.addEventListener('input', function(ev) {
+  if (ev.target && ev.target.id === 'recipe-servings') updateRecipeSummary();
+});
+
+// ---------- Ingredient picker (for recipe) ----------
+function openIngredientPicker() {
+  pendingIngredient = null;
+  document.getElementById('ingredient-search').value = '';
+  document.getElementById('ingredient-amount-block').style.display = 'none';
+  document.getElementById('ingredient-add-btn').disabled = true;
+  renderIngredientPicker();
+  document.getElementById('modal-ingredient-picker').classList.add('active');
+}
+
+function renderIngredientPicker() {
+  const q = (document.getElementById('ingredient-search').value || '').toLowerCase();
+  const list = document.getElementById('ingredient-picker-list');
+  const items = state.foods.filter(f => !q || f.name.toLowerCase().includes(q));
+  if (!items.length) { list.innerHTML = '<div class="empty">該当なし</div>'; return; }
+  list.innerHTML = items.map(f => {
+    const sel = pendingIngredient === f.id;
+    const thumb = f.image
+      ? `<img src="${f.image}" class="thumb-sm">`
+      : `<div class="thumb-sm thumb-placeholder">🍽</div>`;
+    return `<div class="picker-item ${sel ? 'selected' : ''}" onclick="selectIngredient('${f.id}')">
+      ${thumb}
+      <div class="body">
+        <div class="name">${escapeHtml(f.name)}</div>
+        <div class="meta">${f.serving}g / ${Math.round(f.kcal)}kcal</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function selectIngredient(id) {
+  pendingIngredient = id;
+  const f = findFood(id);
+  document.getElementById('ingredient-amount-block').style.display = 'block';
+  document.getElementById('ingredient-serving-hint').textContent = `(基準: ${f.serving}g)`;
+  document.getElementById('ingredient-amount').value = f.serving;
+  document.getElementById('ingredient-add-btn').disabled = false;
+  renderIngredientPicker();
+}
+
+function addIngredientToRecipe() {
+  if (!pendingIngredient) return;
+  const amount = parseFloat(document.getElementById('ingredient-amount').value);
+  if (!amount || amount <= 0) { alert('分量を入力してください'); return; }
+  recipeDraft.ingredients.push({ foodId: pendingIngredient, amount });
+  closeModal('modal-ingredient-picker');
+  renderRecipeIngredients();
 }
 
 // ---------- Barcode ----------
@@ -1109,9 +1746,11 @@ async function lookupBarcode() {
     const fat = n.fat_100g || 0;
     const carb = n.carbohydrates_100g || 0;
     result.innerHTML = `<div class="food-list-item" style="margin-top:8px;">
-      <div class="name">${escapeHtml(name)}</div>
-      <div class="meta">100gあたり: ${Math.round(kcal100)}kcal / P${round1(prot)} F${round1(fat)} C${round1(carb)}</div>
-      <button class="small" style="margin-top:6px;" onclick='saveBarcodeFood(${JSON.stringify({name, kcal100, prot, fat, carb, code})})'>食品DBに追加</button>
+      <div class="body">
+        <div class="name">${escapeHtml(name)}</div>
+        <div class="meta">100gあたり: ${Math.round(kcal100)}kcal / P${round1(prot)} F${round1(fat)} C${round1(carb)}</div>
+        <button class="small" style="margin-top:6px;" onclick='saveBarcodeFood(${JSON.stringify({name, kcal100, prot, fat, carb, code})})'>食品DBに追加</button>
+      </div>
     </div>`;
   } catch (e) {
     result.innerHTML = '<div class="info-text">通信エラーが発生しました</div>';
@@ -1120,7 +1759,7 @@ async function lookupBarcode() {
 
 function saveBarcodeFood(d) {
   state.foods.push({
-    id: uid(),
+    id: uid('f'),
     name: d.name,
     serving: 100,
     kcal: round1(d.kcal100),
@@ -1199,6 +1838,8 @@ function importData(ev) {
       const data = JSON.parse(e.target.result);
       if (!confirm('既存のデータが上書きされます。続行しますか？')) return;
       state = data;
+      // Ensure new fields exist
+      if (!state.recipes) state.recipes = [];
       saveState();
       alert('インポートしました');
       location.reload();
@@ -1219,7 +1860,6 @@ function resetAll() {
 
 // ---------- Stats / Charts ----------
 function renderStats() {
-  // Weight chart
   const weightDates = Object.keys(state.weights).sort().slice(-90);
   const weightVals = weightDates.map(d => state.weights[d]);
   const weightMA = weightDates.map(d => weightAvg(7, d));
@@ -1231,7 +1871,6 @@ function renderStats() {
     ],
   });
 
-  // Calorie chart (last 14 days)
   const days = [];
   for (let i = 13; i >= 0; i--) days.push(todayStr(-i));
   const kcalData = days.map(d => dayTotals(d).kcal);
@@ -1244,7 +1883,6 @@ function renderStats() {
     ],
   });
 
-  // Macro pie
   const t = dayTotals(currentDate);
   renderChart('chart-macro', 'doughnut', {
     labels: ['タンパク質 kcal', '脂質 kcal', '炭水化物 kcal'],
@@ -1254,7 +1892,6 @@ function renderStats() {
     }],
   });
 
-  // Summary
   const tdee = computeAdaptiveTDEE();
   const w = latestWeight();
   const w7 = weightAvg(7);
@@ -1271,7 +1908,9 @@ function renderStats() {
     <hr>
     <div class="row between"><span>本日のカロリー目標</span><strong>${calorieTarget() || '—'} kcal</strong></div>
     <hr>
-    <div class="row between"><span>登録済み食品数</span><strong>${state.foods.length}</strong></div>
+    <div class="row between"><span>登録食品数</span><strong>${state.foods.length}</strong></div>
+    <hr>
+    <div class="row between"><span>登録レシピ数</span><strong>${state.recipes.length}</strong></div>
   `;
 }
 
@@ -1293,10 +1932,6 @@ function renderChart(id, type, data) {
       },
     },
   });
-}
-
-function escapeHtml(s) {
-  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
 // ---------- Boot ----------
