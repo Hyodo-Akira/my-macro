@@ -1,0 +1,22 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Node / build (将来使う場合用)
+node_modules/
+dist/
+build/
+*.log
+
+# Personal data exports (誤コミット防止)
+mymacro_export_*.json

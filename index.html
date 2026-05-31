@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>MyMacro - 食事管理</title>
+<link rel="stylesheet" href="styles.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1 id="header-title">MyMacro</h1>
+    <div class="sub" id="header-sub">食事管理</div>
+  </header>
+
+  <main>
+    <!-- =================== TODAY VIEW =================== -->
+    <section class="view active" id="view-today">
+      <div class="day-nav">
+        <button onclick="changeDay(-1)">◀ 前日</button>
+        <div class="date" id="today-date"></div>
+        <button onclick="changeDay(1)">翌日 ▶</button>
+      </div>
+
+      <div class="card">
+        <h2>カロリー</h2>
+        <div class="row between">
+          <div>
+            <div class="big-number" id="cal-remaining">0</div>
+            <div class="label">残り kcal</div>
+          </div>
+          <div style="text-align:right;">
+            <div><span id="cal-consumed">0</span> / <span id="cal-target">0</span></div>
+            <div class="label">摂取 / 目標</div>
+          </div>
+        </div>
+        <div class="progress-bar"><div class="progress-fill calorie" id="cal-bar" style="width:0%"></div></div>
+      </div>
+
+      <div class="card">
+        <h2>マクロ栄養素</h2>
+        <div class="grid-3">
+          <div class="macro-block">
+            <div class="val" style="color:var(--protein)"><span id="p-val">0</span>g</div>
+            <div class="tgt">目標 <span id="p-tgt">0</span>g</div>
+            <div class="progress-bar"><div class="progress-fill protein" id="p-bar" style="width:0%"></div></div>
+          </div>
+          <div class="macro-block">
+            <div class="val" style="color:var(--fat)"><span id="f-val">0</span>g</div>
+            <div class="tgt">目標 <span id="f-tgt">0</span>g</div>
+            <div class="progress-bar"><div class="progress-fill fat" id="f-bar" style="width:0%"></div></div>
+          </div>
+          <div class="macro-block">
+            <div class="val" style="color:var(--carb)"><span id="c-val">0</span>g</div>
+            <div class="tgt">目標 <span id="c-tgt">0</span>g</div>
+            <div class="progress-bar"><div class="progress-fill carb" id="c-bar" style="width:0%"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>食事ログ</h2>
+        <div id="meals-container"></div>
+      </div>
+    </section>
+
+    <!-- =================== WEIGHT VIEW =================== -->
+    <section class="view" id="view-weight">
+      <div class="card">
+        <h2>体重を記録</h2>
+        <div class="form-group">
+          <label>日付</label>
+          <input type="date" id="weight-date">
+        </div>
+        <div class="form-group">
+          <label>体重 (kg)</label>
+          <input type="number" step="0.05" id="weight-input" placeholder="例: 65.50" inputmode="decimal">
+        </div>
+        <button class="full" onclick="addWeight()">記録する</button>
+      </div>
+
+      <div class="card">
+        <h2>適応型TDEE</h2>
+        <div class="row between">
+          <div>
+            <div class="big-number" id="tdee-display">—</div>
+            <div class="label">推定TDEE (kcal/日) <span class="badge" id="tdee-badge">推定</span></div>
+          </div>
+          <div style="text-align:right;">
+            <div><span id="weight-current">—</span> kg</div>
+            <div class="label">現在体重 (7日平均)</div>
+          </div>
+        </div>
+        <div class="tdee-info" id="tdee-info">体重と食事を記録するほど、TDEEの精度が上がります。</div>
+      </div>
+
+      <div class="card">
+        <h2>体重履歴</h2>
+        <div id="weight-history"></div>
+      </div>
+    </section>
+
+    <!-- =================== STATS VIEW =================== -->
+    <section class="view" id="view-stats">
+      <div class="card">
+        <h2>体重推移</h2>
+        <div class="chart-container"><canvas id="chart-weight"></canvas></div>
+      </div>
+      <div class="card">
+        <h2>カロリー摂取推移 (14日)</h2>
+        <div class="chart-container"><canvas id="chart-calorie"></canvas></div>
+      </div>
+      <div class="card">
+        <h2>マクロ配分 (今日)</h2>
+        <div class="chart-container" style="height:200px;"><canvas id="chart-macro"></canvas></div>
+      </div>
+      <div class="card">
+        <h2>サマリー</h2>
+        <div id="stats-summary"></div>
+      </div>
+    </section>
+
+    <!-- =================== FOODS VIEW =================== -->
+    <section class="view" id="view-foods">
+      <div class="tabs">
+        <button id="tab-foods" class="active" onclick="switchFoodTab('foods')">食品</button>
+        <button id="tab-recipes" onclick="switchFoodTab('recipes')">マイレシピ</button>
+      </div>
+
+      <div id="subview-foods">
+        <div class="card">
+          <h2>食品データベース</h2>
+          <div class="search-bar">
+            <input type="text" id="food-search" placeholder="食品を検索..." oninput="renderFoodDatabase()">
+          </div>
+          <div class="row" style="gap:8px;margin-bottom:12px;">
+            <button class="full" onclick="openFoodModal()">＋ 新規追加</button>
+            <button class="full secondary" onclick="openBarcodeModal()">📷 バーコード</button>
+          </div>
+          <div id="food-database"></div>
+        </div>
+      </div>
+
+      <div id="subview-recipes" style="display:none;">
+        <div class="card">
+          <h2>マイレシピ</h2>
+          <div class="search-bar">
+            <input type="text" id="recipe-search" placeholder="レシピを検索..." oninput="renderRecipes()">
+          </div>
+          <button class="full" style="margin-bottom:12px;" onclick="openRecipeModal()">＋ 新規レシピを作成</button>
+          <div id="recipe-list"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =================== SETTINGS VIEW =================== -->
+    <section class="view" id="view-settings">
+      <div class="card">
+        <h2>基本設定</h2>
+        <div class="form-group">
+          <label>性別</label>
+          <select id="set-sex">
+            <option value="male">男性</option>
+            <option value="female">女性</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>年齢</label>
+            <input type="number" id="set-age" placeholder="30" inputmode="numeric">
+          </div>
+          <div class="form-group">
+            <label>身長 (cm)</label>
+            <input type="number" step="0.1" id="set-height" placeholder="170" inputmode="decimal">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>活動レベル</label>
+          <select id="set-activity">
+            <option value="1.2">座位中心 (×1.2)</option>
+            <option value="1.375">軽い活動 (×1.375)</option>
+            <option value="1.55" selected>中程度の活動 (×1.55)</option>
+            <option value="1.725">活発 (×1.725)</option>
+            <option value="1.9">非常に活発 (×1.9)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>目標</h2>
+        <div class="form-group">
+          <label>目標</label>
+          <select id="set-goal" onchange="updateGoalUI()">
+            <option value="cut">減量</option>
+            <option value="maintain" selected>維持</option>
+            <option value="bulk">増量</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>目標体重 (kg)</label>
+            <input type="number" step="0.1" id="set-target-weight" placeholder="例: 60" inputmode="decimal">
+          </div>
+          <div class="form-group">
+            <label>達成日</label>
+            <input type="date" id="set-target-date">
+          </div>
+        </div>
+        <div class="info-text">目標とTDEEから1日の必要カロリーを自動計算します</div>
+      </div>
+
+      <div class="card">
+        <h2>マクロ目標 (g/日)</h2>
+        <div class="form-group">
+          <label>計算モード</label>
+          <select id="set-macro-mode" onchange="updateMacroUI()">
+            <option value="auto" selected>自動 (P:体重×2g / F:総kcal×25% / C:残り)</option>
+            <option value="manual">手動入力</option>
+          </select>
+        </div>
+        <div class="form-row" id="macro-manual" style="display:none;">
+          <div class="form-group">
+            <label>タンパク質 (g)</label>
+            <input type="number" id="set-p" placeholder="120" inputmode="numeric">
+          </div>
+          <div class="form-group">
+            <label>脂質 (g)</label>
+            <input type="number" id="set-f" placeholder="60" inputmode="numeric">
+          </div>
+          <div class="form-group" style="grid-column:span 2;">
+            <label>炭水化物 (g)</label>
+            <input type="number" id="set-c" placeholder="250" inputmode="numeric">
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>データ管理</h2>
+        <button class="full" onclick="saveSettings()">設定を保存</button>
+        <hr>
+        <button class="full secondary" onclick="exportData()">📥 全データをエクスポート (JSON)</button>
+        <div class="info-text">将来iOSアプリへ移行する際に利用できます</div>
+        <hr>
+        <input type="file" id="import-file" accept=".json" style="display:none" onchange="importData(event)">
+        <button class="full secondary" onclick="document.getElementById('import-file').click()">📤 データをインポート</button>
+        <hr>
+        <button class="full danger" onclick="resetAll()">全データをリセット</button>
+      </div>
+    </section>
+  </main>
+
+  <nav class="bottom-nav">
+    <button class="nav-item active" data-view="today" onclick="switchView('today')">
+      <span class="icon">🍽️</span>今日
+    </button>
+    <button class="nav-item" data-view="weight" onclick="switchView('weight')">
+      <span class="icon">⚖️</span>体重
+    </button>
+    <button class="nav-item" data-view="stats" onclick="switchView('stats')">
+      <span class="icon">📊</span>分析
+    </button>
+    <button class="nav-item" data-view="foods" onclick="switchView('foods')">
+      <span class="icon">🥗</span>食品
+    </button>
+    <button class="nav-item" data-view="settings" onclick="switchView('settings')">
+      <span class="icon">⚙️</span>設定
+    </button>
+  </nav>
+</div>
+
+<!-- =================== MODAL: Add food entry (with search) =================== -->
+<div class="modal-overlay" id="modal-add-entry">
+  <div class="modal">
+    <h2>食事に追加</h2>
+    <div class="tabs">
+      <button id="entry-tab-foods" class="active" onclick="switchEntryTab('foods')">食品</button>
+      <button id="entry-tab-recipes" onclick="switchEntryTab('recipes')">レシピ</button>
+    </div>
+    <div class="form-group">
+      <input type="text" id="entry-search" placeholder="検索..." oninput="renderEntryPicker()">
+    </div>
+    <div class="picker-list" id="entry-picker"></div>
+
+    <div id="entry-amount-block" style="display:none;">
+      <div class="form-group">
+        <label id="entry-amount-label">分量 (g) <span id="entry-serving-hint" class="info-text"></span></label>
+        <input type="number" step="any" id="entry-amount" placeholder="100" oninput="updateEntryPreview()" inputmode="decimal">
+      </div>
+      <div class="form-group">
+        <label>食事区分</label>
+        <select id="entry-meal">
+          <option value="breakfast">朝食</option>
+          <option value="lunch">昼食</option>
+          <option value="dinner">夕食</option>
+          <option value="snack">間食</option>
+        </select>
+      </div>
+      <div class="tdee-info" id="entry-preview">—</div>
+    </div>
+
+    <div class="actions">
+      <button class="secondary" onclick="closeModal('modal-add-entry')">キャンセル</button>
+      <button id="entry-save-btn" onclick="saveEntry()" disabled>追加</button>
+    </div>
+  </div>
+</div>
+
+<!-- =================== MODAL: Add/Edit food to DB =================== -->
+<div class="modal-overlay" id="modal-add-food">
+  <div class="modal">
+    <h2 id="food-modal-title">食品を登録</h2>
+
+    <div class="form-group">
+      <label>画像 (任意)</label>
+      <input type="file" id="food-image-input" accept="image/*" style="display:none" onchange="onFoodImageSelected(event)">
+      <div class="image-upload" id="food-image-area" onclick="document.getElementById('food-image-input').click()">
+        <div id="food-image-placeholder">📷 タップして画像を選択</div>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>食品名</label>
+      <input type="text" id="food-name" placeholder="例: 鶏むね肉(皮なし)">
+    </div>
+    <div class="form-group">
+      <label>1食分の量 (g)</label>
+      <input type="number" id="food-serving" placeholder="100" value="100" inputmode="decimal">
+    </div>
+    <div class="info-text" style="margin-bottom:8px;">以下は「1食分の量」あたりの栄養素</div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>カロリー (kcal)</label>
+        <input type="number" step="0.1" id="food-kcal" placeholder="165" inputmode="decimal">
+      </div>
+      <div class="form-group">
+        <label>タンパク質 (g)</label>
+        <input type="number" step="0.1" id="food-p" placeholder="31" inputmode="decimal">
+      </div>
+      <div class="form-group">
+        <label>脂質 (g)</label>
+        <input type="number" step="0.1" id="food-f" placeholder="3.6" inputmode="decimal">
+      </div>
+      <div class="form-group">
+        <label>炭水化物 (g)</label>
+        <input type="number" step="0.1" id="food-c" placeholder="0" inputmode="decimal">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>バーコード (任意)</label>
+      <input type="text" id="food-barcode" placeholder="JAN/EAN">
+    </div>
+    <div class="actions">
+      <button class="secondary" onclick="closeModal('modal-add-food')">キャンセル</button>
+      <button onclick="saveFood()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- =================== MODAL: Barcode lookup =================== -->
+<div class="modal-overlay" id="modal-barcode">
+  <div class="modal">
+    <h2>バーコードから食品を取得</h2>
+    <div class="info-text" style="margin-bottom:12px;">Open Food Facts データベースから検索します（日本商品も多数登録あり）</div>
+    <div class="form-group">
+      <label>バーコード番号 (JAN/EAN)</label>
+      <input type="text" id="barcode-input" placeholder="例: 4901330571382" inputmode="numeric">
+    </div>
+    <div id="barcode-result"></div>
+    <div class="actions">
+      <button class="secondary" onclick="closeModal('modal-barcode')">閉じる</button>
+      <button onclick="lookupBarcode()">検索</button>
+    </div>
+  </div>
+</div>
+
+<!-- =================== MODAL: Recipe create/edit =================== -->
+<div class="modal-overlay" id="modal-recipe">
+  <div class="modal">
+    <h2 id="recipe-modal-title">レシピを作成</h2>
+
+    <div class="form-group">
+      <label>画像 (任意)</label>
+      <input type="file" id="recipe-image-input" accept="image/*" style="display:none" onchange="onRecipeImageSelected(event)">
+      <div class="image-upload" id="recipe-image-area" onclick="document.getElementById('recipe-image-input').click()">
+        <div id="recipe-image-placeholder">📷 タップして画像を選択</div>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>レシピ名</label>
+      <input type="text" id="recipe-name" placeholder="例: 鶏むね丼">
+    </div>
+    <div class="form-group">
+      <label>このレシピで作れる人前 (servings)</label>
+      <input type="number" step="0.5" id="recipe-servings" value="1" inputmode="decimal">
+    </div>
+
+    <hr>
+    <div class="row between" style="margin-bottom:8px;">
+      <strong style="font-size:13px;">食材リスト</strong>
+      <button class="small" onclick="openIngredientPicker()">＋ 食材追加</button>
+    </div>
+    <div id="recipe-ingredients"></div>
+
+    <div class="recipe-summary" id="recipe-summary">食材を追加してください</div>
+
+    <div class="actions">
+      <button class="secondary" onclick="closeModal('modal-recipe')">キャンセル</button>
+      <button onclick="saveRecipe()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- =================== MODAL: Ingredient picker (for recipe) =================== -->
+<div class="modal-overlay" id="modal-ingredient-picker">
+  <div class="modal">
+    <h2>食材を追加</h2>
+    <div class="form-group">
+      <input type="text" id="ingredient-search" placeholder="食品を検索..." oninput="renderIngredientPicker()">
+    </div>
+    <div class="picker-list" id="ingredient-picker-list"></div>
+    <div id="ingredient-amount-block" style="display:none;">
+      <div class="form-group">
+        <label>分量 (g) <span id="ingredient-serving-hint" class="info-text"></span></label>
+        <input type="number" step="any" id="ingredient-amount" inputmode="decimal">
+      </div>
+    </div>
+    <div class="actions">
+      <button class="secondary" onclick="closeModal('modal-ingredient-picker')">キャンセル</button>
+      <button id="ingredient-add-btn" onclick="addIngredientToRecipe()" disabled>追加</button>
+    </div>
+  </div>
+</div>
+
+<!--
+  Script load order matters because we use plain scripts (not ES modules).
+  Each file may rely on globals defined by files loaded before it.
+-->
+<script src="js/helpers.js"></script>
+<script src="js/state.js"></script>
+<script src="js/image-utils.js"></script>
+<script src="js/tdee.js"></script>
+<script src="js/views/today.js"></script>
+<script src="js/views/weight.js"></script>
+<script src="js/views/foods.js"></script>
+<script src="js/views/recipes.js"></script>
+<script src="js/views/stats.js"></script>
+<script src="js/views/settings.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
