@@ -30,7 +30,7 @@
         <div class="row between">
           <div>
             <div class="big-number" id="cal-remaining">0</div>
-            <div class="label" id="cal-remaining-label">残り kcal</div>
+            <div class="label">残り kcal</div>
           </div>
           <div style="text-align:right;">
             <div><span id="cal-consumed">0</span> / <span id="cal-target">0</span></div>
@@ -44,17 +44,17 @@
         <h2>マクロ栄養素</h2>
         <div class="grid-3">
           <div class="macro-block">
-            <div class="val macro-protein"><span id="p-val">0</span>g</div>
+            <div class="val" style="color:var(--protein)"><span id="p-val">0</span>g</div>
             <div class="tgt">目標 <span id="p-tgt">0</span>g</div>
             <div class="progress-bar"><div class="progress-fill protein" id="p-bar" style="width:0%"></div></div>
           </div>
           <div class="macro-block">
-            <div class="val macro-fat"><span id="f-val">0</span>g</div>
+            <div class="val" style="color:var(--fat)"><span id="f-val">0</span>g</div>
             <div class="tgt">目標 <span id="f-tgt">0</span>g</div>
             <div class="progress-bar"><div class="progress-fill fat" id="f-bar" style="width:0%"></div></div>
           </div>
           <div class="macro-block">
-            <div class="val macro-carb"><span id="c-val">0</span>g</div>
+            <div class="val" style="color:var(--carb)"><span id="c-val">0</span>g</div>
             <div class="tgt">目標 <span id="c-tgt">0</span>g</div>
             <div class="progress-bar"><div class="progress-fill carb" id="c-bar" style="width:0%"></div></div>
           </div>
@@ -237,19 +237,6 @@
         </div>
       </div>
 
-      <!-- v2: Calorie display mode (count-down vs count-up) -->
-      <div class="card">
-        <h2>表示設定</h2>
-        <div class="form-group">
-          <label>今日タブのカロリー表示</label>
-          <select id="set-cal-display">
-            <option value="remaining">残りカウントダウン（標準）</option>
-            <option value="consumed">摂取カウントアップ</option>
-          </select>
-        </div>
-        <div class="info-text">「残り」は目標までの残量。「摂取」は今日食べた合計。どちらでも超過時は赤文字になります。</div>
-      </div>
-
       <div class="card">
         <h2>データ管理</h2>
         <button class="full" onclick="saveSettings()">設定を保存</button>
@@ -287,7 +274,7 @@
 <!-- =================== MODAL: Add food entry (with search) =================== -->
 <div class="modal-overlay" id="modal-add-entry">
   <div class="modal">
-    <h2 id="entry-modal-title">食事に追加</h2>
+    <h2>食事に追加</h2>
     <div class="tabs">
       <button id="entry-tab-foods" class="active" onclick="switchEntryTab('foods')">食品</button>
       <button id="entry-tab-recipes" onclick="switchEntryTab('recipes')">レシピ</button>
@@ -338,28 +325,11 @@
       <label>食品名</label>
       <input type="text" id="food-name" placeholder="例: 鶏むね肉(皮なし)">
     </div>
-
-    <div class="form-row">
-      <div class="form-group">
-        <label>単位</label>
-        <select id="food-unit" onchange="updateFoodUnitLabel()">
-          <option value="g">g（グラム）</option>
-          <option value="個">個</option>
-          <option value="本">本</option>
-          <option value="枚">枚</option>
-          <option value="杯">杯</option>
-          <option value="ml">ml</option>
-          <option value="切れ">切れ</option>
-          <option value="袋">袋</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label id="food-serving-label">1基準分の量 (g)</label>
-        <input type="number" step="any" id="food-serving" placeholder="100" value="100" inputmode="decimal">
-      </div>
+    <div class="form-group">
+      <label>1食分の量 (g)</label>
+      <input type="number" id="food-serving" placeholder="100" value="100" inputmode="decimal">
     </div>
-
-    <div class="info-text" style="margin-bottom:8px;">以下は「1基準分の量」あたりの栄養素</div>
+    <div class="info-text" style="margin-bottom:8px;">以下は「1食分の量」あたりの栄養素</div>
     <div class="form-row">
       <div class="form-group">
         <label>カロリー (kcal)</label>
@@ -454,7 +424,7 @@
     <div class="picker-list" id="ingredient-picker-list"></div>
     <div id="ingredient-amount-block" style="display:none;">
       <div class="form-group">
-        <label><span id="ingredient-amount-label-unit">分量 (g)</span> <span id="ingredient-serving-hint" class="info-text"></span></label>
+        <label>分量 (g) <span id="ingredient-serving-hint" class="info-text"></span></label>
         <input type="number" step="any" id="ingredient-amount" inputmode="decimal">
       </div>
     </div>
