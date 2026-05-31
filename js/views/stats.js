@@ -1,11 +1,9 @@
 // =====================================================================
-// views/stats.js - Stats view (weight chart, calorie chart, macro pie,
-//                  summary card). Uses Chart.js loaded via CDN.
-// Depends on: helpers, state, tdee
+// views/stats.js - Charts and aggregate stats
+// Depends on: helpers, state, tdee, Chart.js
 // =====================================================================
 
 function renderStats() {
-  // ---- Weight chart (last 90 days) ----
   const weightDates = Object.keys(state.weights).sort().slice(-90);
   const weightVals = weightDates.map(d => state.weights[d]);
   const weightMA = weightDates.map(d => weightAvg(7, d));
@@ -17,7 +15,6 @@ function renderStats() {
     ],
   });
 
-  // ---- Calorie chart (last 14 days) ----
   const days = [];
   for (let i = 13; i >= 0; i--) days.push(todayStr(-i));
   const kcalData = days.map(d => dayTotals(d).kcal);
@@ -30,7 +27,6 @@ function renderStats() {
     ],
   });
 
-  // ---- Macro doughnut (today's split, in kcal) ----
   const t = dayTotals(currentDate);
   renderChart('chart-macro', 'doughnut', {
     labels: ['タンパク質 kcal', '脂質 kcal', '炭水化物 kcal'],
@@ -40,12 +36,12 @@ function renderStats() {
     }],
   });
 
-  // ---- Summary card ----
   const tdee = computeAdaptiveTDEE();
   const w = latestWeight();
   const w7 = weightAvg(7);
   const w30 = weightAvg(30);
   const summary = document.getElementById('stats-summary');
+  if (!summary) return;
   summary.innerHTML = `
     <div class="row between"><span>最新体重</span><strong>${w || '—'} kg</strong></div>
     <hr>
@@ -64,8 +60,10 @@ function renderStats() {
 }
 
 function renderChart(id, type, data) {
+  const canvas = document.getElementById(id);
+  if (!canvas) return;
   if (charts[id]) charts[id].destroy();
-  const ctx = document.getElementById(id).getContext('2d');
+  const ctx = canvas.getContext('2d');
   charts[id] = new Chart(ctx, {
     type,
     data,

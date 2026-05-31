@@ -5,17 +5,20 @@
 
 function loadSettingsForm() {
   const s = state.settings;
-  document.getElementById('set-sex').value = s.sex;
-  document.getElementById('set-age').value = s.age;
-  document.getElementById('set-height').value = s.height;
-  document.getElementById('set-activity').value = s.activity;
-  document.getElementById('set-goal').value = s.goal;
-  document.getElementById('set-target-weight').value = s.targetWeight || '';
-  document.getElementById('set-target-date').value = s.targetDate || '';
-  document.getElementById('set-macro-mode').value = s.macroMode;
-  document.getElementById('set-p').value = s.manualP;
-  document.getElementById('set-f').value = s.manualF;
-  document.getElementById('set-c').value = s.manualC;
+  const setVal = (elId, v) => { const e = document.getElementById(elId); if (e) e.value = v; };
+  setVal('set-sex', s.sex);
+  setVal('set-age', s.age);
+  setVal('set-height', s.height);
+  setVal('set-activity', s.activity);
+  setVal('set-goal', s.goal);
+  setVal('set-target-weight', s.targetWeight || '');
+  setVal('set-target-date', s.targetDate || '');
+  setVal('set-macro-mode', s.macroMode);
+  setVal('set-p', s.manualP);
+  setVal('set-f', s.manualF);
+  setVal('set-c', s.manualC);
+  // v2 display option
+  setVal('set-cal-display', s.calorieDisplay || 'remaining');
   updateMacroUI();
 }
 
@@ -29,19 +32,24 @@ function updateGoalUI() { /* no-op */ }
 
 function saveSettings() {
   const s = state.settings;
-  s.sex = document.getElementById('set-sex').value;
-  s.age = +document.getElementById('set-age').value || 30;
-  s.height = +document.getElementById('set-height').value || 170;
-  s.activity = +document.getElementById('set-activity').value;
-  s.goal = document.getElementById('set-goal').value;
-  s.targetWeight = +document.getElementById('set-target-weight').value || null;
-  s.targetDate = document.getElementById('set-target-date').value || null;
-  s.macroMode = document.getElementById('set-macro-mode').value;
-  s.manualP = +document.getElementById('set-p').value || 0;
-  s.manualF = +document.getElementById('set-f').value || 0;
-  s.manualC = +document.getElementById('set-c').value || 0;
+  const getStr = (id, def='') => { const e = document.getElementById(id); return e ? e.value : def; };
+  const getNum = (id, def) => { const e = document.getElementById(id); return e ? (+e.value || def) : def; };
+  s.sex = getStr('set-sex', s.sex);
+  s.age = getNum('set-age', 30);
+  s.height = getNum('set-height', 170);
+  s.activity = getNum('set-activity', s.activity);
+  s.goal = getStr('set-goal', s.goal);
+  s.targetWeight = +getStr('set-target-weight') || null;
+  s.targetDate = getStr('set-target-date') || null;
+  s.macroMode = getStr('set-macro-mode', s.macroMode);
+  s.manualP = getNum('set-p', 0);
+  s.manualF = getNum('set-f', 0);
+  s.manualC = getNum('set-c', 0);
+  s.calorieDisplay = getStr('set-cal-display', 'remaining') || 'remaining';
   saveState();
   alert('設定を保存しました');
+  // re-render today so display mode change takes effect immediately
+  if (typeof renderToday === 'function') renderToday();
 }
 
 // ---------- Export ----------
@@ -67,6 +75,8 @@ function importData(ev) {
       state = data;
       // Ensure new fields exist
       if (!state.recipes) state.recipes = [];
+      if (!state.settings.calorieDisplay) state.settings.calorieDisplay = 'remaining';
+      state.foods = state.foods.map(f => ({ unit: 'g', ...f }));
       saveState();
       alert('インポートしました');
       location.reload();

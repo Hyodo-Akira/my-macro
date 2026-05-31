@@ -1,13 +1,8 @@
 // =====================================================================
-// image-utils.js - Image compression for food/recipe thumbnails
-// Depends on: (none — uses standard browser APIs)
+// image-utils.js - compressImage helper for thumbnail uploads
+// No dependencies
 // =====================================================================
 
-/**
- * Compress an image file into a JPEG data URL.
- * Defaults: longest side capped at 400px, JPEG quality 0.7.
- * This keeps each food/recipe image around 10–30 KB.
- */
 function compressImage(file, maxSize = 400, quality = 0.7) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();

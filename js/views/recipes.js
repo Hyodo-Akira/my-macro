@@ -88,10 +88,11 @@ function renderRecipeIngredients() {
     el.innerHTML = recipeDraft.ingredients.map((ing, idx) => {
       const f = findFood(ing.foodId);
       const name = f ? f.name : '(不明)';
+      const u = foodUnit(f);
       return `<div class="ingredient-row">
         <div class="name">${escapeHtml(name)}</div>
         <input type="number" step="any" value="${ing.amount}" onchange="updateIngredientAmount(${idx}, this.value)" inputmode="decimal">
-        <span style="font-size:11px;color:var(--text-dim);">g</span>
+        <span style="font-size:11px;color:var(--text-dim);">${u}</span>
         <button class="small ghost" onclick="removeIngredient(${idx})">×</button>
       </div>`;
     }).join('');
@@ -160,7 +161,7 @@ document.addEventListener('input', function(ev) {
   if (ev.target && ev.target.id === 'recipe-servings') updateRecipeSummary();
 });
 
-// ---------- Ingredient picker (used inside Recipe modal) ----------
+// ---------- Ingredient picker ----------
 function openIngredientPicker() {
   pendingIngredient = null;
   document.getElementById('ingredient-search').value = '';
@@ -180,11 +181,12 @@ function renderIngredientPicker() {
     const thumb = f.image
       ? `<img src="${f.image}" class="thumb-sm">`
       : `<div class="thumb-sm thumb-placeholder">🍽</div>`;
+    const u = foodUnit(f);
     return `<div class="picker-item ${sel ? 'selected' : ''}" onclick="selectIngredient('${f.id}')">
       ${thumb}
       <div class="body">
         <div class="name">${escapeHtml(f.name)}</div>
-        <div class="meta">${f.serving}g / ${Math.round(f.kcal)}kcal</div>
+        <div class="meta">${f.serving}${u} / ${Math.round(f.kcal)}kcal</div>
       </div>
     </div>`;
   }).join('');
@@ -193,10 +195,18 @@ function renderIngredientPicker() {
 function selectIngredient(id) {
   pendingIngredient = id;
   const f = findFood(id);
-  document.getElementById('ingredient-amount-block').style.display = 'block';
-  document.getElementById('ingredient-serving-hint').textContent = `(基準: ${f.serving}g)`;
-  document.getElementById('ingredient-amount').value = f.serving;
-  document.getElementById('ingredient-add-btn').disabled = false;
+  if (!f) return;
+  const u = foodUnit(f);
+  const block = document.getElementById('ingredient-amount-block');
+  if (block) block.style.display = 'block';
+  const hint = document.getElementById('ingredient-serving-hint');
+  if (hint) hint.textContent = `(基準: ${f.serving}${u})`;
+  const labelUnit = document.getElementById('ingredient-amount-label-unit');
+  if (labelUnit) labelUnit.textContent = `分量 (${u})`;
+  const amt = document.getElementById('ingredient-amount');
+  if (amt) amt.value = f.serving;
+  const btn = document.getElementById('ingredient-add-btn');
+  if (btn) btn.disabled = false;
   renderIngredientPicker();
 }
 

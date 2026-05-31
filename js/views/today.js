@@ -1,14 +1,14 @@
 // =====================================================================
-// views/today.js - Today view (calorie/macro summary, meal log)
-//                  + Entry add modal (food/recipe picker)
+// views/today.js - Today tab + entry modal (add & edit)
 // Depends on: helpers, state, tdee
 // =====================================================================
 
-// ---------- Entry modal state ----------
-let entryTab = 'foods';       // 'foods' or 'recipes'
-let entrySelected = null;     // { type: 'food'|'recipe', id }
+// ---------- Module state ----------
+let entryTab = 'foods';
+let entrySelected = null;
+let entryEditing = null;  // { date, idx } when editing an existing log entry
 
-// ---------- Today view rendering ----------
+// ---------- Date navigation ----------
 function changeDay(delta) {
   const d = new Date(currentDate);
   d.setDate(d.getDate() + delta);
@@ -16,24 +16,60 @@ function changeDay(delta) {
   renderToday();
 }
 
+// ---------- Render today ----------
 function renderToday() {
   document.getElementById('today-date').textContent = fmtDate(currentDate);
   const t = dayTotals(currentDate);
   const tgt = macroTargets();
-  document.getElementById('cal-consumed').textContent = t.kcal;
-  document.getElementById('cal-target').textContent = tgt.kcal;
-  document.getElementById('cal-remaining').textContent = Math.max(0, tgt.kcal - t.kcal);
-  document.getElementById('cal-bar').style.width = clamp(t.kcal / tgt.kcal * 100, 0, 100) + '%';
-  document.getElementById('p-val').textContent = t.p;
-  document.getElementById('f-val').textContent = t.f;
-  document.getElementById('c-val').textContent = t.c;
-  document.getElementById('p-tgt').textContent = tgt.p;
-  document.getElementById('f-tgt').textContent = tgt.f;
-  document.getElementById('c-tgt').textContent = tgt.c;
-  document.getElementById('p-bar').style.width = clamp(t.p / tgt.p * 100, 0, 100) + '%';
-  document.getElementById('f-bar').style.width = clamp(t.f / tgt.f * 100, 0, 100) + '%';
-  document.getElementById('c-bar').style.width = clamp(t.c / tgt.c * 100, 0, 100) + '%';
 
+  // Calorie display - count-down (remaining) or count-up (consumed)
+  const mode = state.settings.calorieDisplay || 'remaining';
+  const calOver = t.kcal > tgt.kcal;
+  const bigNumEl = document.getElementById('cal-remaining');
+  const bigLabelEl = document.getElementById('cal-remaining-label');
+  if (bigNumEl) {
+    if (mode === 'consumed') {
+      bigNumEl.textContent = t.kcal;
+      if (bigLabelEl) bigLabelEl.textContent = '摂取 kcal';
+    } else {
+      const diff = tgt.kcal - t.kcal;
+      bigNumEl.textContent = diff;  // negative when over
+      if (bigLabelEl) bigLabelEl.textContent = calOver ? 'オーバー kcal' : '残り kcal';
+    }
+    bigNumEl.classList.toggle('over-target', calOver);
+  }
+
+  const calConsumedEl = document.getElementById('cal-consumed');
+  if (calConsumedEl) calConsumedEl.textContent = t.kcal;
+  const calTargetEl = document.getElementById('cal-target');
+  if (calTargetEl) calTargetEl.textContent = tgt.kcal;
+  const calBar = document.getElementById('cal-bar');
+  if (calBar) {
+    calBar.style.width = clamp(t.kcal / tgt.kcal * 100, 0, 100) + '%';
+    calBar.classList.toggle('over-target', calOver);
+  }
+
+  // Macros with over indication
+  ['p', 'f', 'c'].forEach(macro => {
+    const cur = t[macro];
+    const target = tgt[macro];
+    const over = cur > target;
+    const valEl = document.getElementById(macro + '-val');
+    const tgtEl = document.getElementById(macro + '-tgt');
+    const bar = document.getElementById(macro + '-bar');
+    if (valEl) valEl.textContent = cur;
+    if (tgtEl) tgtEl.textContent = target;
+    if (bar) {
+      bar.style.width = clamp(cur / target * 100, 0, 100) + '%';
+      bar.classList.toggle('over-target', over);
+    }
+    // Apply over-target class to the val container (parent of span#X-val), if structure matches
+    if (valEl && valEl.parentElement) {
+      valEl.parentElement.classList.toggle('over-target', over);
+    }
+  });
+
+  // Meal sections
   const meals = ['breakfast', 'lunch', 'dinner', 'snack'];
   const labels = { breakfast: '朝食', lunch: '昼食', dinner: '夕食', snack: '間食' };
   const container = document.getElementById('meals-container');
@@ -60,9 +96,12 @@ function renderToday() {
             <div class="name">${escapeHtml(d.name)}${e.type === 'recipe' ? ' <span class="badge calc">レシピ</span>' : ''}</div>
             <div class="meta">${d.amount} ・ P${round1(n.p)} F${round1(n.f)} C${round1(n.c)}</div>
           </div>
-          <div style="text-align:right;">
+          <div style="text-align:right;display:flex;flex-direction:column;gap:2px;align-items:flex-end;">
             <div class="kcal">${Math.round(n.kcal)} kcal</div>
-            <button class="small ghost" onclick="deleteEntry('${currentDate}', ${idx})">削除</button>
+            <div style="display:flex;gap:4px;">
+              <button class="small secondary" onclick="openEntryEdit('${currentDate}', ${idx})">編集</button>
+              <button class="small ghost" onclick="deleteEntry('${currentDate}', ${idx})">削除</button>
+            </div>
           </div>
         </div>`;
       });
@@ -72,24 +111,58 @@ function renderToday() {
   });
 }
 
-// ---------- Entry modal (searchable food/recipe picker) ----------
+// ---------- Entry modal: open for new entry ----------
 function openEntryModal(meal) {
+  entryEditing = null;  // we're adding, not editing
+  const titleEl = document.getElementById('entry-modal-title');
+  if (titleEl) titleEl.textContent = '食事に追加';
+  const saveBtn = document.getElementById('entry-save-btn');
+  if (saveBtn) {
+    saveBtn.textContent = '追加';
+    saveBtn.disabled = true;
+  }
   document.getElementById('entry-meal').value = meal || 'breakfast';
   document.getElementById('entry-search').value = '';
   entrySelected = null;
   entryTab = 'foods';
   switchEntryTab('foods');
   document.getElementById('entry-amount-block').style.display = 'none';
-  document.getElementById('entry-save-btn').disabled = true;
   document.getElementById('modal-add-entry').classList.add('active');
 }
 
+// ---------- Entry modal: open for editing an existing log entry ----------
+function openEntryEdit(date, idx) {
+  const entry = (state.entries[date] || [])[idx];
+  if (!entry) return;
+  // Start by opening as a fresh modal (this clears entryEditing)
+  openEntryModal(entry.meal);
+  // Then mark as editing and pre-fill
+  entryEditing = { date, idx };
+  const titleEl = document.getElementById('entry-modal-title');
+  if (titleEl) titleEl.textContent = '食事を編集';
+  const saveBtn = document.getElementById('entry-save-btn');
+  if (saveBtn) saveBtn.textContent = '保存';
+  entryTab = entry.type === 'recipe' ? 'recipes' : 'foods';
+  switchEntryTab(entryTab);
+  if (entry.type === 'recipe') {
+    selectEntryItem('recipe', entry.recipeId);
+    document.getElementById('entry-amount').value = entry.servings;
+  } else {
+    selectEntryItem('food', entry.foodId);
+    document.getElementById('entry-amount').value = entry.amount;
+  }
+  document.getElementById('entry-meal').value = entry.meal;
+  updateEntryPreview();
+}
+
+// Open the modal from the food DB list and pre-select the food
 function openEntryFromFood(foodId) {
   switchView('today');
   openEntryModal('breakfast');
   selectEntryItem('food', foodId);
 }
 
+// ---------- Entry tab switcher ----------
 function switchEntryTab(name) {
   entryTab = name;
   document.getElementById('entry-tab-foods').classList.toggle('active', name === 'foods');
@@ -101,6 +174,7 @@ function switchEntryTab(name) {
   renderEntryPicker();
 }
 
+// ---------- Picker (searchable list of foods or recipes) ----------
 function renderEntryPicker() {
   const q = (document.getElementById('entry-search').value || '').toLowerCase();
   const list = document.getElementById('entry-picker');
@@ -113,11 +187,12 @@ function renderEntryPicker() {
         ? `<img src="${f.image}" class="thumb-sm">`
         : `<div class="thumb-sm thumb-placeholder">🍽</div>`;
       const sel = entrySelected && entrySelected.type === 'food' && entrySelected.id === f.id;
+      const u = foodUnit(f);
       return `<div class="picker-item ${sel ? 'selected' : ''}" onclick="selectEntryItem('food', '${f.id}')">
         ${thumb}
         <div class="body">
           <div class="name">${escapeHtml(f.name)}</div>
-          <div class="meta">${f.serving}g / ${Math.round(f.kcal)}kcal</div>
+          <div class="meta">${f.serving}${u} / ${Math.round(f.kcal)}kcal</div>
         </div>
       </div>`;
     }).join('');
@@ -148,11 +223,14 @@ function selectEntryItem(type, id) {
   block.style.display = 'block';
   if (type === 'food') {
     const f = findFood(id);
-    document.getElementById('entry-amount-label').innerHTML = `分量 (g) <span id="entry-serving-hint" class="info-text">(基準: ${f.serving}g)</span>`;
-    document.getElementById('entry-amount').value = f.serving;  // auto-fill serving size
+    const u = foodUnit(f);
+    document.getElementById('entry-amount-label').innerHTML =
+      `分量 (${u}) <span id="entry-serving-hint" class="info-text">(基準: ${f.serving}${u})</span>`;
+    document.getElementById('entry-amount').value = f.serving;
   } else {
     const r = findRecipe(id);
-    document.getElementById('entry-amount-label').innerHTML = `分量 (人前) <span id="entry-serving-hint" class="info-text">(全${r.servings}人前)</span>`;
+    document.getElementById('entry-amount-label').innerHTML =
+      `分量 (人前) <span id="entry-serving-hint" class="info-text">(全${r.servings}人前)</span>`;
     document.getElementById('entry-amount').value = 1;
   }
   document.getElementById('entry-save-btn').disabled = false;
@@ -172,16 +250,28 @@ function updateEntryPreview() {
     `合計: <strong>${Math.round(n.kcal)} kcal</strong> ・ P${round1(n.p)} F${round1(n.f)} C${round1(n.c)}`;
 }
 
+// ---------- Save entry (handles both add and edit) ----------
 function saveEntry() {
   if (!entrySelected) return;
   const amt = parseFloat(document.getElementById('entry-amount').value);
   const meal = document.getElementById('entry-meal').value;
   if (!amt || amt <= 0) { alert('分量を入力してください'); return; }
-  if (!state.entries[currentDate]) state.entries[currentDate] = [];
-  if (entrySelected.type === 'food') {
-    state.entries[currentDate].push({ type: 'food', foodId: entrySelected.id, amount: amt, meal });
+
+  const newEntry = entrySelected.type === 'food'
+    ? { type: 'food',   foodId:   entrySelected.id, amount:   amt, meal }
+    : { type: 'recipe', recipeId: entrySelected.id, servings: amt, meal };
+
+  if (entryEditing) {
+    // Update existing
+    const arr = state.entries[entryEditing.date];
+    if (arr && arr[entryEditing.idx]) {
+      arr[entryEditing.idx] = newEntry;
+    }
+    entryEditing = null;
   } else {
-    state.entries[currentDate].push({ type: 'recipe', recipeId: entrySelected.id, servings: amt, meal });
+    // Add new
+    if (!state.entries[currentDate]) state.entries[currentDate] = [];
+    state.entries[currentDate].push(newEntry);
   }
   saveState();
   closeModal('modal-add-entry');

@@ -1,7 +1,3 @@
-/* =====================================================================
-   MyMacro - Styles
-   ===================================================================== */
-
 :root {
   --bg: #0f1419;
   --panel: #1a2129;
@@ -18,7 +14,6 @@
   --danger: #f44336;
   --success: #4caf50;
 }
-
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 html, body { height: 100%; }
 body {
@@ -29,7 +24,6 @@ body {
   line-height: 1.5;
   overscroll-behavior: none;
 }
-
 #app {
   max-width: 480px;
   margin: 0 auto;
@@ -37,7 +31,6 @@ body {
   padding-bottom: 80px;
   position: relative;
 }
-
 header {
   padding: 16px 16px 12px;
   position: sticky;
@@ -48,10 +41,7 @@ header {
 }
 header h1 { font-size: 18px; font-weight: 600; }
 header .sub { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
-
 main { padding: 16px; }
-
-/* Cards & layout primitives */
 .card {
   background: var(--panel);
   border: 1px solid var(--border);
@@ -68,7 +58,6 @@ main { padding: 16px; }
 .big-number { font-size: 32px; font-weight: 700; }
 .label { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; }
 
-/* Progress bars */
 .progress-bar {
   background: var(--panel-2);
   border-radius: 6px;
@@ -82,12 +71,18 @@ main { padding: 16px; }
 .progress-fill.carb { background: var(--carb); }
 .progress-fill.calorie { background: var(--accent); }
 
-/* Macro blocks */
 .macro-block { text-align: center; }
 .macro-block .val { font-size: 18px; font-weight: 600; }
+.macro-block .val.macro-protein { color: var(--protein); }
+.macro-block .val.macro-fat     { color: var(--fat); }
+.macro-block .val.macro-carb    { color: var(--carb); }
 .macro-block .tgt { font-size: 11px; color: var(--text-dim); }
 
-/* Buttons */
+/* --- Over-target indication (kcal & macros exceeded) --- */
+.over-target { color: var(--danger) !important; }
+.progress-fill.over-target { background: var(--danger) !important; }
+.big-number.over-target { color: var(--danger) !important; }
+
 button, .btn {
   background: var(--accent);
   color: #001019;
@@ -106,7 +101,6 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 button.small { padding: 6px 10px; font-size: 12px; }
 button.full { width: 100%; }
 
-/* Inputs */
 input, select, textarea {
   background: var(--panel-2);
   border: 1px solid var(--border);
@@ -120,7 +114,6 @@ input, select, textarea {
 input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
 label { display: block; font-size: 12px; color: var(--text-dim); margin-bottom: 4px; }
 
-/* Bottom navigation */
 nav.bottom-nav {
   position: fixed;
   bottom: 0;
@@ -146,11 +139,9 @@ nav.bottom-nav .nav-item {
 nav.bottom-nav .nav-item.active { color: var(--accent); }
 nav.bottom-nav .nav-item .icon { font-size: 20px; display: block; margin-bottom: 2px; }
 
-/* Views (tabs) */
 .view { display: none; }
 .view.active { display: block; }
 
-/* Food item rows (in meal log / weight history) */
 .food-item {
   display: flex;
   justify-content: space-between;
@@ -164,7 +155,6 @@ nav.bottom-nav .nav-item .icon { font-size: 20px; display: block; margin-bottom:
 .food-item .meta { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
 .food-item .kcal { font-weight: 600; }
 
-/* Meal sections */
 .meal-section { margin-bottom: 12px; }
 .meal-title {
   display: flex;
@@ -178,7 +168,6 @@ nav.bottom-nav .nav-item .icon { font-size: 20px; display: block; margin-bottom:
 }
 .meal-add { color: var(--accent); font-size: 18px; }
 
-/* Modals */
 .modal-overlay {
   position: fixed; inset: 0;
   background: rgba(0,0,0,0.7);
@@ -201,11 +190,9 @@ nav.bottom-nav .nav-item .icon { font-size: 20px; display: block; margin-bottom:
 .modal .actions { display: flex; gap: 8px; margin-top: 16px; }
 .modal .actions button { flex: 1; }
 
-/* Forms */
 .form-group { margin-bottom: 12px; }
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 
-/* Empty state */
 .empty {
   text-align: center;
   padding: 32px 16px;
@@ -213,7 +200,6 @@ nav.bottom-nav .nav-item .icon { font-size: 20px; display: block; margin-bottom:
   font-size: 13px;
 }
 
-/* Day navigator */
 .day-nav {
   display: flex;
   justify-content: space-between;
@@ -226,10 +212,8 @@ nav.bottom-nav .nav-item .icon { font-size: 20px; display: block; margin-bottom:
 .day-nav button { background: transparent; color: var(--accent); padding: 6px 12px; }
 .day-nav .date { font-weight: 600; }
 
-/* Chart container */
 .chart-container { position: relative; height: 240px; margin-top: 8px; }
 
-/* TDEE info text */
 .tdee-info {
   background: var(--panel-2);
   border-radius: 8px;
@@ -240,7 +224,6 @@ nav.bottom-nav .nav-item .icon { font-size: 20px; display: block; margin-bottom:
   line-height: 1.6;
 }
 
-/* Badges */
 .badge {
   display: inline-block;
   padding: 2px 8px;
@@ -252,7 +235,6 @@ nav.bottom-nav .nav-item .icon { font-size: 20px; display: block; margin-bottom:
 .badge.calc { background: rgba(79, 195, 247, 0.2); color: var(--accent); }
 .badge.est { background: rgba(255, 167, 38, 0.2); color: var(--warning); }
 
-/* Search bar */
 .search-bar {
   margin-bottom: 12px;
   display: flex;
@@ -260,7 +242,6 @@ nav.bottom-nav .nav-item .icon { font-size: 20px; display: block; margin-bottom:
 }
 .search-bar input { flex: 1; }
 
-/* Food list rows (in database/recipes) */
 .food-list-item {
   padding: 10px 12px;
   background: var(--panel-2);
@@ -276,7 +257,6 @@ nav.bottom-nav .nav-item .icon { font-size: 20px; display: block; margin-bottom:
 .food-list-item .body .name { font-weight: 500; }
 .food-list-item .body .meta { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
 
-/* Thumbnails */
 .thumb {
   width: 48px;
   height: 48px;
@@ -300,7 +280,6 @@ nav.bottom-nav .nav-item .icon { font-size: 20px; display: block; margin-bottom:
   font-size: 20px;
 }
 
-/* Misc text */
 .info-text { font-size: 12px; color: var(--text-dim); margin-top: 4px; }
 
 .quick-btn {
@@ -318,7 +297,7 @@ nav.bottom-nav .nav-item .icon { font-size: 20px; display: block; margin-bottom:
 
 hr { border: none; border-top: 1px solid var(--border); margin: 12px 0; }
 
-/* Tabs (Food DB <-> My Recipes, and entry modal) */
+/* Tabs (Food DB <-> My Recipes) */
 .tabs {
   display: flex;
   gap: 4px;
@@ -341,7 +320,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 12px 0; }
   color: #001019;
 }
 
-/* Image upload area */
+/* Image upload */
 .image-upload {
   width: 100%;
   height: 120px;
@@ -367,60 +346,60 @@ hr { border: none; border-top: 1px solid var(--border); margin: 12px 0; }
   position: absolute;
   top: 4px;
   right: 4px;
-  background: rgba(0,0,0,0.6);
+  background: rgba(0,0,0,0.7);
   color: white;
-  border-radius: 50%;
   width: 24px;
   height: 24px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
   cursor: pointer;
+  font-weight: 700;
 }
 
-/* Searchable picker list (entry modal, ingredient picker) */
+/* Picker list (entry modal & ingredient picker) */
 .picker-list {
   max-height: 280px;
   overflow-y: auto;
-  background: var(--panel-2);
-  border-radius: 8px;
-  padding: 4px;
   margin-bottom: 12px;
 }
 .picker-item {
   padding: 8px 10px;
+  background: var(--panel-2);
   border-radius: 6px;
+  margin-bottom: 4px;
   cursor: pointer;
   display: flex;
   align-items: center;
   gap: 8px;
 }
-.picker-item:active, .picker-item.selected { background: var(--accent); color: #001019; }
-.picker-item.selected .meta { color: rgba(0,0,0,0.7); }
-.picker-item .name { font-size: 14px; font-weight: 500; }
-.picker-item .meta { font-size: 11px; color: var(--text-dim); }
+.picker-item.selected {
+  background: rgba(79, 195, 247, 0.2);
+  outline: 2px solid var(--accent);
+}
 .picker-item .body { flex: 1; min-width: 0; }
+.picker-item .name { font-weight: 500; font-size: 14px; }
+.picker-item .meta { font-size: 11px; color: var(--text-dim); }
 
-/* Recipe ingredient row */
+/* Ingredient row in recipe modal */
 .ingredient-row {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 10px;
-  background: var(--panel-2);
-  border-radius: 8px;
-  margin-bottom: 6px;
+  gap: 6px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
 }
-.ingredient-row .name { flex: 1; font-size: 14px; }
-.ingredient-row input { width: 80px; padding: 6px 8px; font-size: 13px; }
+.ingredient-row:last-child { border-bottom: none; }
+.ingredient-row .name { flex: 1; font-size: 13px; }
+.ingredient-row input { width: 70px; padding: 6px 8px; font-size: 13px; }
 
-/* Recipe summary box */
 .recipe-summary {
   background: var(--panel-2);
   border-radius: 8px;
-  padding: 10px;
-  font-size: 13px;
-  line-height: 1.6;
+  padding: 10px 12px;
+  font-size: 12px;
+  color: var(--text-dim);
   margin-top: 8px;
+  line-height: 1.6;
 }
