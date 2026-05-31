@@ -16,6 +16,8 @@ function loadSettingsForm() {
   document.getElementById('set-p').value = s.manualP;
   document.getElementById('set-f').value = s.manualF;
   document.getElementById('set-c').value = s.manualC;
+  // v2 display option
+  document.getElementById('set-cal-display').value = s.calorieDisplay || 'remaining';
   updateMacroUI();
 }
 
@@ -40,8 +42,11 @@ function saveSettings() {
   s.manualP = +document.getElementById('set-p').value || 0;
   s.manualF = +document.getElementById('set-f').value || 0;
   s.manualC = +document.getElementById('set-c').value || 0;
+  s.calorieDisplay = document.getElementById('set-cal-display').value || 'remaining';
   saveState();
   alert('設定を保存しました');
+  // re-render today so display mode change takes effect immediately
+  renderToday();
 }
 
 // ---------- Export ----------
@@ -67,6 +72,8 @@ function importData(ev) {
       state = data;
       // Ensure new fields exist
       if (!state.recipes) state.recipes = [];
+      if (!state.settings.calorieDisplay) state.settings.calorieDisplay = 'remaining';
+      state.foods = state.foods.map(f => ({ unit: 'g', ...f }));
       saveState();
       alert('インポートしました');
       location.reload();

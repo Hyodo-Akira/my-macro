@@ -1,8 +1,28 @@
 // =====================================================================
-// tdee.js - Adaptive TDEE calculation, calorie/macro targets,
-//           daily nutrition totals
-// Depends on: helpers.js (round1), state.js (state, findFood, findRecipe)
+// tdee.js - Nutrition math + adaptive TDEE algorithm
+// Depends on: helpers.js, state.js
 // =====================================================================
+
+// ---------- Recipe nutrition ----------
+function recipeNutrition(recipe) {
+  let kcal = 0, p = 0, f = 0, c = 0;
+  for (const ing of recipe.ingredients || []) {
+    const food = findFood(ing.foodId);
+    if (!food) continue;
+    const factor = ing.amount / food.serving;
+    kcal += food.kcal * factor;
+    p += food.p * factor;
+    f += food.f * factor;
+    c += food.c * factor;
+  }
+  return { kcal, p, f, c };
+}
+
+function recipePerServing(recipe) {
+  const n = recipeNutrition(recipe);
+  const s = recipe.servings || 1;
+  return { kcal: n.kcal / s, p: n.p / s, f: n.f / s, c: n.c / s };
+}
 
 // ---------- Mifflin-St Jeor BMR ----------
 function bmrMSJ(weight, height, age, sex) {
@@ -30,28 +50,7 @@ function weightAvg(days = 7, endDate = currentDate) {
   return vals.reduce((a, b) => a + b, 0) / vals.length;
 }
 
-// ---------- Recipe nutrition ----------
-function recipeNutrition(recipe) {
-  let kcal = 0, p = 0, f = 0, c = 0;
-  for (const ing of recipe.ingredients || []) {
-    const food = findFood(ing.foodId);
-    if (!food) continue;
-    const factor = ing.amount / food.serving;
-    kcal += food.kcal * factor;
-    p += food.p * factor;
-    f += food.f * factor;
-    c += food.c * factor;
-  }
-  return { kcal, p, f, c };
-}
-
-function recipePerServing(recipe) {
-  const n = recipeNutrition(recipe);
-  const s = recipe.servings || 1;
-  return { kcal: n.kcal / s, p: n.p / s, f: n.f / s, c: n.c / s };
-}
-
-// ---------- Entry nutrition (handles food and recipe) ----------
+// ---------- Per-entry nutrition (food or recipe) ----------
 function entryNutrition(entry) {
   if (entry.type === 'recipe') {
     const rec = findRecipe(entry.recipeId);
@@ -67,6 +66,7 @@ function entryNutrition(entry) {
   }
 }
 
+// ---------- Display label for an entry (unit-aware) ----------
 function entryDisplay(entry) {
   if (entry.type === 'recipe') {
     const rec = findRecipe(entry.recipeId);
@@ -75,7 +75,8 @@ function entryDisplay(entry) {
   } else {
     const food = findFood(entry.foodId);
     if (!food) return { name: '(削除済み食品)', amount: '', image: null };
-    return { name: food.name, amount: `${entry.amount}g`, image: food.image };
+    const unit = foodUnit(food);
+    return { name: food.name, amount: `${entry.amount}${unit}`, image: food.image };
   }
 }
 
@@ -90,8 +91,6 @@ function dayTotals(date) {
 }
 
 // ---------- Adaptive TDEE ----------
-// implied_TDEE = avg_intake + (delta_weight_kg * 7700 / N_days)
-// Multiple windows are weighted by recency (exp(-days_ago/30)).
 function computeAdaptiveTDEE() {
   const dates = Object.keys(state.weights).sort();
   if (dates.length < 2) {
@@ -153,7 +152,7 @@ function avgIntakeBetween(startDate, endDate) {
   return vals.reduce((a, b) => a + b, 0) / vals.length;
 }
 
-// ---------- Calorie target & macros ----------
+// ---------- Calorie & Macro targets ----------
 function calorieTarget() {
   const t = computeAdaptiveTDEE();
   if (!t.tdee) return null;

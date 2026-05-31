@@ -1,23 +1,23 @@
 // =====================================================================
 // views/foods.js - Food DB tab + Food add/edit modal + Barcode lookup
-// Depends on: helpers, state, image-utils
+// Depends on: helpers, state, image-utils, tdee (for renderRecipes hook)
 // =====================================================================
 
-// ---------- Food modal state ----------
-let foodEditingId = null;     // null = new
-let foodImageData = null;     // current image (data URL or null)
+// ---------- Module state ----------
+let foodEditingId = null;
+let foodImageData = null;
 
-// ---------- Food/Recipe tab switcher ----------
+// ---------- Sub-tab switcher (食品 ↔ マイレシピ) ----------
 function switchFoodTab(name) {
   document.getElementById('tab-foods').classList.toggle('active', name === 'foods');
   document.getElementById('tab-recipes').classList.toggle('active', name === 'recipes');
-  document.getElementById('subview-foods').style.display = name === 'foods' ? 'block' : 'none';
+  document.getElementById('subview-foods').style.display   = name === 'foods'   ? 'block' : 'none';
   document.getElementById('subview-recipes').style.display = name === 'recipes' ? 'block' : 'none';
-  if (name === 'foods') renderFoodDatabase();
+  if (name === 'foods')   renderFoodDatabase();
   if (name === 'recipes') renderRecipes();
 }
 
-// ---------- Food database list ----------
+// ---------- Food DB list ----------
 function renderFoodDatabase() {
   const q = (document.getElementById('food-search').value || '').toLowerCase();
   const list = state.foods.filter(f => !q || f.name.toLowerCase().includes(q) || (f.barcode || '').includes(q));
@@ -30,12 +30,13 @@ function renderFoodDatabase() {
     const thumb = f.image
       ? `<img src="${f.image}" class="thumb">`
       : `<div class="thumb thumb-placeholder">🍽</div>`;
+    const u = foodUnit(f);
     return `
     <div class="food-list-item">
       ${thumb}
       <div class="body">
         <div class="name">${escapeHtml(f.name)}</div>
-        <div class="meta">${f.serving}g あたり: ${Math.round(f.kcal)}kcal / P${f.p} F${f.f} C${f.c}</div>
+        <div class="meta">${f.serving}${u} あたり: ${Math.round(f.kcal)}kcal / P${f.p} F${f.f} C${f.c}</div>
       </div>
       <div style="display:flex;flex-direction:column;gap:4px;">
         <button class="small" onclick="openEntryFromFood('${f.id}')">追加</button>
@@ -45,7 +46,7 @@ function renderFoodDatabase() {
   }).join('');
 }
 
-// ---------- Food add/edit modal ----------
+// ---------- Food modal (add/edit) ----------
 function openFoodModal(id = null) {
   foodEditingId = id;
   const title = document.getElementById('food-modal-title');
@@ -54,6 +55,7 @@ function openFoodModal(id = null) {
     if (!f) return;
     title.textContent = '食品を編集';
     document.getElementById('food-name').value = f.name;
+    document.getElementById('food-unit').value = foodUnit(f);
     document.getElementById('food-serving').value = f.serving;
     document.getElementById('food-kcal').value = f.kcal;
     document.getElementById('food-p').value = f.p;
@@ -63,14 +65,23 @@ function openFoodModal(id = null) {
     showFoodImagePreview(f.image || null);
   } else {
     title.textContent = '食品を登録';
-    ['food-name', 'food-kcal', 'food-p', 'food-f', 'food-c', 'food-barcode']
-      .forEach(k => document.getElementById(k).value = '');
+    ['food-name','food-kcal','food-p','food-f','food-c','food-barcode'].forEach(k => document.getElementById(k).value = '');
+    document.getElementById('food-unit').value = 'g';
     document.getElementById('food-serving').value = '100';
     showFoodImagePreview(null);
   }
+  updateFoodUnitLabel();
   document.getElementById('modal-add-food').classList.add('active');
 }
 
+// Update the unit suffix shown next to "1基準分の量" when the unit dropdown changes
+function updateFoodUnitLabel() {
+  const u = document.getElementById('food-unit').value || 'g';
+  const lbl = document.getElementById('food-serving-label');
+  if (lbl) lbl.textContent = `1基準分の量 (${u})`;
+}
+
+// ---------- Image upload ----------
 function showFoodImagePreview(dataURL) {
   foodImageData = dataURL;
   const area = document.getElementById('food-image-area');
@@ -89,16 +100,18 @@ async function onFoodImageSelected(ev) {
   ev.target.value = '';
 }
 
+// ---------- Save / delete ----------
 function saveFood() {
   const name = document.getElementById('food-name').value.trim();
   if (!name) { alert('食品名を入力してください'); return; }
   const data = {
     name,
+    unit: document.getElementById('food-unit').value || 'g',
     serving: parseFloat(document.getElementById('food-serving').value) || 100,
     kcal: parseFloat(document.getElementById('food-kcal').value) || 0,
-    p: parseFloat(document.getElementById('food-p').value) || 0,
-    f: parseFloat(document.getElementById('food-f').value) || 0,
-    c: parseFloat(document.getElementById('food-c').value) || 0,
+    p:    parseFloat(document.getElementById('food-p').value)    || 0,
+    f:    parseFloat(document.getElementById('food-f').value)    || 0,
+    c:    parseFloat(document.getElementById('food-c').value)    || 0,
     barcode: document.getElementById('food-barcode').value.trim() || null,
     image: foodImageData,
   };
@@ -162,6 +175,7 @@ function saveBarcodeFood(d) {
   state.foods.push({
     id: uid('f'),
     name: d.name,
+    unit: 'g',
     serving: 100,
     kcal: round1(d.kcal100),
     p: round1(d.prot),
