@@ -20,6 +20,45 @@ function loadSettingsForm() {
   // v2 display option
   setVal('set-cal-display', s.calorieDisplay || 'remaining');
   updateMacroUI();
+  renderCustomUnitsList();
+}
+
+// ---------- Custom units management (v3) ----------
+function renderCustomUnitsList() {
+  const el = document.getElementById('custom-units-list');
+  if (!el) return;
+  const custom = state.settings.customUnits || [];
+  if (!custom.length) {
+    el.innerHTML = '<div class="info-text">追加した単位はまだありません</div>';
+    return;
+  }
+  // Pass index (safe primitive) to remove handler; lookup the unit at click time.
+  el.innerHTML = custom.map((u, i) => `
+    <div class="unit-chip">
+      <span>${escapeHtml(u)}</span>
+      <button class="small ghost" onclick="onRemoveCustomUnit(${i})">×</button>
+    </div>
+  `).join('');
+}
+
+function onAddCustomUnit() {
+  const input = document.getElementById('custom-unit-input');
+  if (!input) return;
+  const u = (input.value || '').trim();
+  if (!u) return;
+  if (u.length > 6) { alert('単位は6文字以内で入力してください'); return; }
+  const ok = addCustomUnit(u);
+  if (!ok) { alert('すでに登録済みの単位です'); return; }
+  input.value = '';
+  renderCustomUnitsList();
+}
+
+function onRemoveCustomUnit(idx) {
+  const u = (state.settings.customUnits || [])[idx];
+  if (!u) return;
+  if (!confirm(`単位「${u}」を削除しますか？(既に使用中の食品はそのまま残ります)`)) return;
+  removeCustomUnit(u);
+  renderCustomUnitsList();
 }
 
 function updateMacroUI() {

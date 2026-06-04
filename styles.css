@@ -403,3 +403,55 @@ hr { border: none; border-top: 1px solid var(--border); margin: 12px 0; }
   margin-top: 8px;
   line-height: 1.6;
 }
+
+/* ===== v3: Entry picker sections (お気に入り / 最近 / すべて) ===== */
+.picker-section {
+  font-size: 12px;
+  color: var(--text-dim);
+  font-weight: 600;
+  padding: 8px 4px 6px;
+  margin-top: 4px;
+  border-bottom: 1px solid var(--border);
+  letter-spacing: 0.5px;
+}
+.picker-section:first-child { margin-top: 0; }
+
+/* ===== v3: Favorite star button on food rows ===== */
+.star-btn {
+  background: transparent;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 0 4px 0 0;
+  color: var(--text-dim);
+  line-height: 1;
+  vertical-align: middle;
+}
+.star-btn.on { color: #ffd54f; }
+
+/* ===== v3: Custom unit chips (in settings) ===== */
+#custom-units-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.unit-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 13px;
+}
+.unit-chip .small.ghost {
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  font-size: 14px;
+  padding: 0 2px;
+  cursor: pointer;
+  line-height: 1;
+}
+.unit-chip .small.ghost:hover { color: var(--danger); }

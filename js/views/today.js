@@ -80,7 +80,10 @@ function renderToday() {
       .map((e, idx) => ({ e, idx }))
       .filter(x => x.e.meal === m);
     let html = `<div class="meal-section"><div class="meal-title"><span>${labels[m]}</span>
-      <button class="ghost meal-add" onclick="openEntryModal('${m}')">＋</button></div>`;
+      <div style="display:flex;gap:4px;">
+        <button class="ghost meal-add" onclick="copyMealFromYesterday('${m}')" title="昨日の${labels[m]}をコピー">📋</button>
+        <button class="ghost meal-add" onclick="openEntryModal('${m}')">＋</button>
+      </div></div>`;
     if (!mealEntries.length) {
       html += '<div class="empty" style="padding:8px;">記録なし</div>';
     } else {
@@ -175,27 +178,57 @@ function switchEntryTab(name) {
 }
 
 // ---------- Picker (searchable list of foods or recipes) ----------
+// Render a single food row. Extracted so we can reuse for favorites/recent/all sections.
+function _renderFoodPickerItem(f) {
+  const thumb = f.image
+    ? `<img src="${f.image}" class="thumb-sm">`
+    : `<div class="thumb-sm thumb-placeholder">🍽</div>`;
+  const sel = entrySelected && entrySelected.type === 'food' && entrySelected.id === f.id;
+  const u = foodUnit(f);
+  const fav = isFavoriteFood(f.id);
+  return `<div class="picker-item ${sel ? 'selected' : ''}" onclick="selectEntryItem('food', '${f.id}')">
+    ${thumb}
+    <div class="body">
+      <div class="name">
+        <button class="star-btn ${fav ? 'on' : ''}" onclick="onToggleFoodFavorite(event,'${f.id}')" title="お気に入り">${fav ? '⭐' : '☆'}</button>
+        ${escapeHtml(f.name)}
+      </div>
+      <div class="meta">${f.serving}${u} / ${Math.round(f.kcal)}kcal</div>
+    </div>
+  </div>`;
+}
+
 function renderEntryPicker() {
   const q = (document.getElementById('entry-search').value || '').toLowerCase();
   const list = document.getElementById('entry-picker');
-  let items;
   if (entryTab === 'foods') {
-    items = state.foods.filter(f => !q || f.name.toLowerCase().includes(q));
-    if (!items.length) { list.innerHTML = '<div class="empty">該当なし</div>'; return; }
-    list.innerHTML = items.map(f => {
-      const thumb = f.image
-        ? `<img src="${f.image}" class="thumb-sm">`
-        : `<div class="thumb-sm thumb-placeholder">🍽</div>`;
-      const sel = entrySelected && entrySelected.type === 'food' && entrySelected.id === f.id;
-      const u = foodUnit(f);
-      return `<div class="picker-item ${sel ? 'selected' : ''}" onclick="selectEntryItem('food', '${f.id}')">
-        ${thumb}
-        <div class="body">
-          <div class="name">${escapeHtml(f.name)}</div>
-          <div class="meta">${f.serving}${u} / ${Math.round(f.kcal)}kcal</div>
-        </div>
-      </div>`;
-    }).join('');
+    if (q) {
+      // Search: flat list of matches (no sections)
+      const items = state.foods.filter(f => f.name.toLowerCase().includes(q));
+      if (!items.length) { list.innerHTML = '<div class="empty">該当なし</div>'; return; }
+      list.innerHTML = items.map(_renderFoodPickerItem).join('');
+    } else {
+      // No search: 3 sections — お気に入り / 最近 / すべて
+      const favIds = state.settings.favoriteFoodIds || [];
+      const recentIds = getRecentFoodIds(14, 5).filter(id => !favIds.includes(id));
+      const favs = favIds.map(id => findFood(id)).filter(Boolean);
+      const recents = recentIds.map(id => findFood(id)).filter(Boolean);
+      const otherFoods = state.foods.filter(f => !favIds.includes(f.id) && !recentIds.includes(f.id));
+
+      let html = '';
+      if (favs.length) {
+        html += `<div class="picker-section">⭐ お気に入り</div>` + favs.map(_renderFoodPickerItem).join('');
+      }
+      if (recents.length) {
+        html += `<div class="picker-section">🕐 最近 (14日)</div>` + recents.map(_renderFoodPickerItem).join('');
+      }
+      if (otherFoods.length) {
+        const header = (favs.length || recents.length) ? `<div class="picker-section">📦 すべて</div>` : '';
+        html += header + otherFoods.map(_renderFoodPickerItem).join('');
+      }
+      if (!html) html = '<div class="empty">食品がありません</div>';
+      list.innerHTML = html;
+    }
   } else {
     items = state.recipes.filter(r => !q || r.name.toLowerCase().includes(q));
     if (!items.length) { list.innerHTML = '<div class="empty">レシピがありません。<br>「食品」タブの右の「マイレシピ」タブから作成できます。</div>'; return; }
@@ -280,6 +313,23 @@ function saveEntry() {
 
 function deleteEntry(date, idx) {
   state.entries[date].splice(idx, 1);
+  saveState();
+  renderToday();
+}
+
+// ---------- Copy yesterday's meal (v3) ----------
+function copyMealFromYesterday(meal) {
+  const d = new Date(currentDate);
+  d.setDate(d.getDate() - 1);
+  const yKey = d.toISOString().slice(0, 10);
+  const yEntries = (state.entries[yKey] || []).filter(e => e.meal === meal);
+  if (!yEntries.length) {
+    alert('昨日のこの食事に記録がありません');
+    return;
+  }
+  if (!state.entries[currentDate]) state.entries[currentDate] = [];
+  // Deep-copy each entry so future edits don't affect yesterday
+  yEntries.forEach(e => state.entries[currentDate].push({ ...e }));
   saveState();
   renderToday();
 }

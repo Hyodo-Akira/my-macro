@@ -36,6 +36,9 @@ function renderStats() {
     }],
   });
 
+  // BMR / 推定TDEE / 適応型TDEE 比較チャート
+  renderTdeeCompareChart();
+
   const tdee = computeAdaptiveTDEE();
   const w = latestWeight();
   const w7 = weightAvg(7);
@@ -57,6 +60,39 @@ function renderStats() {
     <hr>
     <div class="row between"><span>登録レシピ数</span><strong>${state.recipes.length}</strong></div>
   `;
+}
+
+// BMR・推定TDEE（BMR × 活動係数）・適応型TDEE（水平線）を重ねて表示
+function renderTdeeCompareChart() {
+  const canvas = document.getElementById('chart-tdee-compare');
+  if (!canvas) return;
+  const s = state.settings;
+  // 体重記録のある最新90日分を使用
+  const dates = Object.keys(state.weights).sort().slice(-90);
+  if (!dates.length) {
+    if (charts['chart-tdee-compare']) {
+      charts['chart-tdee-compare'].destroy();
+      delete charts['chart-tdee-compare'];
+    }
+    return;
+  }
+  const bmrArr = dates.map(d => {
+    const w = state.weights[d];
+    return Math.round(bmrMSJ(w, s.height, s.age, s.sex));
+  });
+  const estArr = bmrArr.map(b => Math.round(b * (s.activity || 1.55)));
+  const adaptive = computeAdaptiveTDEE();
+  const adaptiveVal = adaptive && adaptive.tdee ? adaptive.tdee : null;
+  const adaptiveArr = dates.map(() => adaptiveVal);
+
+  renderChart('chart-tdee-compare', 'line', {
+    labels: dates.map(d => d.slice(5)),
+    datasets: [
+      { label: 'BMR', data: bmrArr, borderColor: '#9e9e9e', backgroundColor: 'rgba(158,158,158,.15)', pointRadius: 1, tension: 0.2 },
+      { label: '推定TDEE', data: estArr, borderColor: '#ffa726', backgroundColor: 'rgba(255,167,38,.15)', pointRadius: 1, tension: 0.2 },
+      { label: '適応型TDEE', data: adaptiveArr, borderColor: '#4fc3f7', borderDash: [6,4], pointRadius: 0, tension: 0 },
+    ],
+  });
 }
 
 function renderChart(id, type, data) {

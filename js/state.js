@@ -19,6 +19,10 @@ function defaultState() {
       manualP: 120, manualF: 60, manualC: 250,
       // v2: calorie display mode ('remaining' = 残りカウントダウン, 'consumed' = 摂取カウントアップ)
       calorieDisplay: 'remaining',
+      // v3: user-defined extra units (string[]) appended to the default unit set
+      customUnits: [],
+      // v3: favorited food ids (string[])
+      favoriteFoodIds: [],
     },
     weights: {},
     entries: {},
@@ -74,6 +78,70 @@ function findRecipe(id) { return state.recipes.find(r => r.id === id); }
 
 // Helper: get a food's display unit (always returns a string)
 function foodUnit(f) { return (f && f.unit) || 'g'; }
+
+// ---------- Units (v3) ----------
+const DEFAULT_UNITS = ['g', '個', '本', '枚', '杯', 'ml', '切れ', '袋'];
+
+// All units = default + user-added custom units (deduplicated, preserves order)
+function getAllUnits() {
+  const custom = (state.settings.customUnits || []).filter(u => u && !DEFAULT_UNITS.includes(u));
+  return [...DEFAULT_UNITS, ...custom];
+}
+
+function addCustomUnit(u) {
+  u = (u || '').trim();
+  if (!u) return false;
+  if (DEFAULT_UNITS.includes(u)) return false;          // already standard
+  if ((state.settings.customUnits || []).includes(u)) return false;  // already custom
+  state.settings.customUnits = [...(state.settings.customUnits || []), u];
+  saveState();
+  return true;
+}
+
+function removeCustomUnit(u) {
+  state.settings.customUnits = (state.settings.customUnits || []).filter(x => x !== u);
+  saveState();
+}
+
+// ---------- Favorites (v3) ----------
+function isFavoriteFood(id) {
+  return (state.settings.favoriteFoodIds || []).includes(id);
+}
+
+function toggleFoodFavorite(id) {
+  const list = state.settings.favoriteFoodIds || [];
+  if (list.includes(id)) {
+    state.settings.favoriteFoodIds = list.filter(x => x !== id);
+  } else {
+    state.settings.favoriteFoodIds = [...list, id];
+  }
+  saveState();
+}
+
+// ---------- Recent foods (v3) ----------
+// Returns food ids eaten within the last `days` days, ordered by recency
+// (most-recent first), deduplicated. Optionally limit to `max` items.
+function getRecentFoodIds(days = 14, max = 5) {
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - days);
+  const dates = Object.keys(state.entries)
+    .filter(d => new Date(d) >= cutoff)
+    .sort()
+    .reverse();
+  const seen = new Set();
+  const result = [];
+  for (const d of dates) {
+    for (const e of state.entries[d] || []) {
+      if (e.type !== 'food' || !e.foodId) continue;
+      if (seen.has(e.foodId)) continue;
+      if (!findFood(e.foodId)) continue;  // food was deleted
+      seen.add(e.foodId);
+      result.push(e.foodId);
+      if (result.length >= max) return result;
+    }
+  }
+  return result;
+}
 
 // ---------- Initialize globals ----------
 let state = loadState();

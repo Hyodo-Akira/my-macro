@@ -20,7 +20,13 @@ function switchFoodTab(name) {
 // ---------- Food DB list ----------
 function renderFoodDatabase() {
   const q = (document.getElementById('food-search').value || '').toLowerCase();
-  const list = state.foods.filter(f => !q || f.name.toLowerCase().includes(q) || (f.barcode || '').includes(q));
+  let list = state.foods.filter(f => !q || f.name.toLowerCase().includes(q) || (f.barcode || '').includes(q));
+  // Sort: favorites first, then keep original order for the rest
+  list = list.slice().sort((a, b) => {
+    const af = isFavoriteFood(a.id) ? 1 : 0;
+    const bf = isFavoriteFood(b.id) ? 1 : 0;
+    return bf - af;
+  });
   const el = document.getElementById('food-database');
   if (!list.length) {
     el.innerHTML = '<div class="empty">該当なし</div>';
@@ -31,11 +37,15 @@ function renderFoodDatabase() {
       ? `<img src="${f.image}" class="thumb">`
       : `<div class="thumb thumb-placeholder">🍽</div>`;
     const u = foodUnit(f);
+    const fav = isFavoriteFood(f.id);
     return `
     <div class="food-list-item">
       ${thumb}
       <div class="body">
-        <div class="name">${escapeHtml(f.name)}</div>
+        <div class="name">
+          <button class="star-btn ${fav ? 'on' : ''}" onclick="onToggleFoodFavorite(event,'${f.id}')" title="お気に入り">${fav ? '⭐' : '☆'}</button>
+          ${escapeHtml(f.name)}
+        </div>
         <div class="meta">${f.serving}${u} あたり: ${Math.round(f.kcal)}kcal / P${f.p} F${f.f} C${f.c}</div>
       </div>
       <div style="display:flex;flex-direction:column;gap:4px;">
@@ -44,6 +54,31 @@ function renderFoodDatabase() {
       </div>
     </div>`;
   }).join('');
+}
+
+// Toggle a food's favorite state from any list (food DB or picker).
+function onToggleFoodFavorite(ev, id) {
+  if (ev) { ev.stopPropagation(); ev.preventDefault(); }
+  toggleFoodFavorite(id);
+  const viewFoods = document.getElementById('view-foods');
+  if (viewFoods && viewFoods.classList.contains('active')) renderFoodDatabase();
+  const modalEntry = document.getElementById('modal-add-entry');
+  if (modalEntry && modalEntry.classList.contains('active') && typeof renderEntryPicker === 'function') {
+    renderEntryPicker();
+  }
+}
+
+// Populate the food-unit <select> with default + custom units.
+// Call this before opening the food modal so the latest custom units appear.
+function populateFoodUnitSelect(selected) {
+  const sel = document.getElementById('food-unit');
+  if (!sel) return;
+  const units = getAllUnits();
+  sel.innerHTML = units.map(u => {
+    const label = u === 'g' ? 'g（グラム）' : u;
+    return `<option value="${escapeHtml(u)}">${escapeHtml(label)}</option>`;
+  }).join('');
+  if (selected && units.includes(selected)) sel.value = selected;
 }
 
 // ---------- Food modal (add/edit) ----------
@@ -56,7 +91,8 @@ function openFoodModal(id = null) {
     if (!f) return;
     if (title) title.textContent = '食品を編集';
     setVal('food-name', f.name);
-    setVal('food-unit', foodUnit(f));
+    // Populate unit select FIRST so the saved unit (incl. custom) is selectable
+    populateFoodUnitSelect(foodUnit(f));
     setVal('food-serving', f.serving);
     setVal('food-kcal', f.kcal);
     setVal('food-p', f.p);
@@ -67,7 +103,7 @@ function openFoodModal(id = null) {
   } else {
     if (title) title.textContent = '食品を登録';
     ['food-name','food-kcal','food-p','food-f','food-c','food-barcode'].forEach(k => setVal(k, ''));
-    setVal('food-unit', 'g');
+    populateFoodUnitSelect('g');
     setVal('food-serving', '100');
     showFoodImagePreview(null);
   }

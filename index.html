@@ -118,6 +118,11 @@
         <div class="chart-container" style="height:200px;"><canvas id="chart-macro"></canvas></div>
       </div>
       <div class="card">
+        <h2>基礎代謝 & TDEE 推移</h2>
+        <div class="chart-container"><canvas id="chart-tdee-compare"></canvas></div>
+        <div class="info-text">BMR(基礎代謝) / 推定TDEE(BMR×活動係数) / 適応型TDEE(実績ベース) の比較</div>
+      </div>
+      <div class="card">
         <h2>サマリー</h2>
         <div id="stats-summary"></div>
       </div>
@@ -250,6 +255,17 @@
         <div class="info-text">「残り」は目標までの残量。「摂取」は今日食べた合計。どちらでも超過時は赤文字になります。</div>
       </div>
 
+      <!-- v3: Custom units -->
+      <div class="card">
+        <h2>カスタム単位</h2>
+        <div class="info-text" style="margin-bottom:8px;">食品登録で使える単位を追加できます（例：缶 / パック / 房）</div>
+        <div class="row" style="gap:8px;">
+          <input type="text" id="custom-unit-input" placeholder="例: 缶, パック" maxlength="6" style="flex:1;">
+          <button onclick="onAddCustomUnit()">追加</button>
+        </div>
+        <div id="custom-units-list" style="margin-top:8px;"></div>
+      </div>
+
       <div class="card">
         <h2>データ管理</h2>
         <button class="full" onclick="saveSettings()">設定を保存</button>
@@ -343,14 +359,7 @@
       <div class="form-group">
         <label>単位</label>
         <select id="food-unit" onchange="updateFoodUnitLabel()">
-          <option value="g">g（グラム）</option>
-          <option value="個">個</option>
-          <option value="本">本</option>
-          <option value="枚">枚</option>
-          <option value="杯">杯</option>
-          <option value="ml">ml</option>
-          <option value="切れ">切れ</option>
-          <option value="袋">袋</option>
+          <!-- options populated by populateFoodUnitSelect() in foods.js -->
         </select>
       </div>
       <div class="form-group">
